@@ -4,7 +4,7 @@ import { Card as CardType, GameState, MeldType } from './types/game';
 import { NOTE_NAMES, NOTE_JP } from './constants/music';
 import { getChordSymbol, getChordInterpretation, getScaleInterpretation, tryAddCardToMeld } from './utils/musicTheory';
 import { setupRound, sortHand, getCombinations, getValidPonCombs, getValidChiiCombs, checkInterrupts, addLog, finishRound, checkWinCondition } from './utils/gameLogic';
-import { playMelody, getAudioContext } from './utils/audio';
+import { playMelody, playCutInSound, playWinSound, getAudioContext } from './utils/audio';
 
 import { Header } from './components/Header';
 import { PlayerStatus } from './components/PlayerStatus';
@@ -12,6 +12,8 @@ import { GuideAndDeck } from './components/GuideAndDeck';
 import { Field } from './components/Field';
 import { Hand } from './components/Hand';
 import { Card as CardComponent } from './components/Card';
+import { CutIn } from './components/CutIn';
+import { WinEffect } from './components/WinEffect';
 import { RuleModal } from './components/Modals/RuleModal';
 import { DiscardModal } from './components/Modals/DiscardModal';
 import { LogModal } from './components/Modals/LogModal';
@@ -27,10 +29,40 @@ export default function App() {
   const [showDiscardModal, setShowDiscardModal] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
 
+  // ポン・チー カットイン表示状態（横スライド）
+  const [cutInInfo, setCutInInfo] = useState<{ type: 'pon' | 'chii'; playerName: string } | null>(null);
+
+  // アガリ専用演出表示状態（中央ズームインパクト）
+  const [winEffectName, setWinEffectName] = useState<string | null>(null);
+
   // 初回ユーザー操作時にWeb Audio APIを有効化
   const initAudio = () => {
     getAudioContext();
   };
+
+  // アガリ・流局演出の起動
+  const triggerWinSequence = useCallback((winnerId: number | null, reasonMsg: string) => {
+    initAudio();
+    if (winnerId !== null) {
+      setGameState(curr => {
+        const winnerName = curr.players[winnerId]?.name || '誰か';
+        playWinSound();
+        setWinEffectName(winnerName);
+        return curr;
+      });
+    }
+
+    setTimeout(() => {
+      setWinEffectName(null);
+      setGameState(prev => {
+        if (prev.roundOver) return prev;
+        const s = { ...prev, logs: [...prev.logs], scores: [...prev.scores] };
+        s.winner = winnerId;
+        finishRound(s, reasonMsg);
+        return s;
+      });
+    }, 1200);
+  }, []);
 
   const isPlayerTurn = gameState.turn === 0;
   const isMainPhase = gameState.phase === 'main';
@@ -60,7 +92,7 @@ export default function App() {
       const p = { ...currentP, hand: sortHand([...currentP.hand]) };
       
       if (s.deck.length === 0) {
-        finishRound(s, '山札がなくなりました（流局）');
+        triggerWinSequence(null, '山札がなくなりました（流局）');
         s.actionCount += 1;
         return s;
       }
@@ -117,13 +149,16 @@ export default function App() {
       s.message = `${p.name} が ${type === 'scale' ? 'スケール' : symbol} を公開`;
       addLog(s, p.name, `[${cardsStr}] で ${type === 'scale' ? 'スケール' : symbol} を公開`);
 
-      checkWinCondition(s);
+      const winner = s.players.find(pl => pl.hand.length === 0);
+      if (winner) {
+        triggerWinSequence(winner.id, `${winner.name} がアガリました！`);
+      }
       s.actionCount += 1;
       return s;
     });
     setSelectedHand([]);
     setSelectedMeld(null);
-  }, []);
+  }, [triggerWinSequence]);
 
   const doAdd = useCallback((cardId: string, meldId: string, newSeq: CardType[]) => {
     initAudio();
@@ -162,13 +197,16 @@ export default function App() {
       addLog(s, p.name, `${ownerName}の [${targetName}] に ${cardStr}を付け札 → [${newTargetName}]`);
 
       playMelody(meld.cards.map(c => c.interpretedAbsVal ?? c.absVal));
-      checkWinCondition(s);
+      const winner = s.players.find(pl => pl.hand.length === 0);
+      if (winner) {
+        triggerWinSequence(winner.id, `${winner.name} がアガリました！`);
+      }
       s.actionCount += 1;
       return s;
     });
     setSelectedHand([]);
     setSelectedMeld(null);
-  }, []);
+  }, [triggerWinSequence]);
 
   const doDiscard = useCallback((cardId: string) => {
     setGameState(prev => {
@@ -197,7 +235,11 @@ export default function App() {
       const noteText = `${NOTE_NAMES[noteIndex]}${oct}(${NOTE_JP[noteIndex]})`;
       addLog(s, p.name, `${noteText}を捨てた`);
       
-      if (checkWinCondition(s)) return s;
+      const winner = s.players.find(pl => pl.hand.length === 0);
+      if (winner) {
+        triggerWinSequence(winner.id, `${winner.name} がアガリました！`);
+        return s;
+      }
 
       const candidates = checkInterrupts(s, s.turn, discardedCard);
       if (candidates.length > 0) {
@@ -240,6 +282,8 @@ export default function App() {
 
   const doInterruptAction = useCallback((playerId: number, type: 'pon' | 'chii', handCardIds: string[]) => {
     initAudio();
+    playCutInSound(type);
+
     setGameState(prev => {
       if (prev.phase !== 'interrupt') return prev;
       const s: GameState = { 
@@ -253,6 +297,12 @@ export default function App() {
       const actorP = s.players[playerId];
       const p = { ...actorP, hand: [...actorP.hand] };
       
+      // カットイン表示トリガー
+      setCutInInfo({ type, playerName: p.name });
+      setTimeout(() => {
+        setCutInInfo(null);
+      }, 900);
+
       const discarderId = s.interruptInfo ? s.interruptInfo.discarderId : null;
       const discarderName = discarderId !== null ? s.players[discarderId]?.name || '誰か' : '誰か';
 
@@ -294,13 +344,16 @@ export default function App() {
       s.message = `${p.name} が ${discarderName} の捨て札で ${actionName}`;
       addLog(s, p.name, `${discarderName}の捨て札で ${actionName}！ [${cardsStr}] で ${symbol} を公開`);
       
+      const winner = s.players.find(pl => pl.hand.length === 0);
+      if (winner) {
+        triggerWinSequence(winner.id, `${winner.name} がアガリました！`);
+      }
       s.actionCount += 1;
-      checkWinCondition(s);
       return s;
     });
     setSelectedHand([]);
     setSelectedMeld(null);
-  }, []);
+  }, [triggerWinSequence]);
 
   // -------------------------------------------------------------
   // プレイヤーの操作ヘルパー
@@ -569,7 +622,7 @@ export default function App() {
   const lastActionText = lastPlayerLog ? `[${lastPlayerLog.player}] ${lastPlayerLog.text}` : undefined;
 
   return (
-    <div className={`w-full max-w-md h-full flex flex-col overflow-hidden transition-colors duration-300 shadow-2xl ${
+    <div className={`relative w-full max-w-md h-full flex flex-col overflow-hidden transition-colors duration-300 shadow-2xl ${
       isPlayerTurn && !gameState.roundOver ? 'bg-blue-50' : 'bg-slate-50'
     }`}>
       {/* ヘッダー */}
@@ -682,6 +735,16 @@ export default function App() {
         onNextRound={nextRound}
         onRestartGame={restartGame}
       />
+
+      {/* ポン・チー カットイン演出（横スライド） */}
+      {cutInInfo && (
+        <CutIn type={cutInInfo.type} playerName={cutInInfo.playerName} />
+      )}
+
+      {/* アガリ専用演出（中央ズームインパクト） */}
+      {winEffectName && (
+        <WinEffect winnerName={winEffectName} />
+      )}
     </div>
   );
 }

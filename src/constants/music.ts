@@ -10,8 +10,16 @@ export interface SuitConfig {
 }
 
 export const SUITS: SuitConfig[] = [
-  { id: 'red', name: '赤', color: 'border-red-500 bg-red-50 text-red-900 ring-red-400' },
-  { id: 'blue', name: '青', color: 'border-blue-500 bg-blue-50 text-blue-900 ring-blue-400' }
+  { 
+    id: 'red', 
+    name: '赤', 
+    color: 'border-rose-300 text-rose-700 bg-gradient-to-b from-white via-white to-rose-50/60 ring-rose-400' 
+  },
+  { 
+    id: 'blue', 
+    name: '青', 
+    color: 'border-blue-300 text-blue-700 bg-gradient-to-b from-white via-white to-blue-50/60 ring-blue-400' 
+  }
 ];
 
 // C3〜B5の21音の周波数一覧（Hz）

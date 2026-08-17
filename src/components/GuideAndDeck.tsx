@@ -55,14 +55,16 @@ export const GuideAndDeck: React.FC<GuideAndDeckProps> = ({
         <div className="flex flex-col items-center">
           <div 
             onClick={() => canDraw && onDraw()}
-            className={`relative w-10 h-14 sm:w-12 sm:h-17 rounded-lg border-2 flex items-center justify-center transition-all duration-300 select-none ${
+            className={`relative w-10 h-14 sm:w-12 sm:h-17 rounded-md sm:rounded-lg border-2 border-white p-0.5 shadow-md flex items-center justify-center select-none transition-transform ${
               canDraw 
-                ? 'bg-blue-600 border-blue-300 ring-4 ring-blue-200 shadow-lg cursor-pointer scale-105 animate-pulse active:scale-95' 
-                : 'bg-slate-700 border-slate-600 opacity-90 cursor-default'
+                ? 'ring-4 ring-blue-300 shadow-[0_4px_12px_rgba(59,130,246,0.35)] scale-105 animate-pulse active:scale-95 cursor-pointer' 
+                : 'opacity-95 cursor-default'
             }`}
             title={canDraw ? "タップして山札から1枚引く" : "山札"}
           >
-            <Music className={`w-5 h-5 ${canDraw ? 'text-white' : 'text-slate-400 opacity-50'}`} />
+            <div className="w-full h-full rounded-xs border border-slate-600/50 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:5px_5px] bg-slate-800 flex items-center justify-center">
+              <Music className={`w-4 h-4 ${canDraw ? 'text-white' : 'text-slate-400 opacity-60'}`} />
+            </div>
             <div className={`absolute -top-1.5 -right-1.5 text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-xs ${
               canDraw ? 'bg-rose-500 text-white animate-bounce' : 'bg-blue-600 text-white'
             }`}>

@@ -41,3 +41,97 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.7);
 }
+
+/* ポン・チー カットイン用アニメーション（右から高速イン → 中央でキープ → 左へ高速アウト） */
+@keyframes cutin-slash {
+  0% {
+    transform: translateX(85%) skewX(-5deg);
+    opacity: 0;
+  }
+  14% {
+    transform: translateX(0%) skewX(-3deg);
+    opacity: 1;
+  }
+  72% {
+    transform: translateX(-2%) skewX(-3deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-85%) skewX(-5deg);
+    opacity: 0;
+  }
+}
+
+@keyframes cutin-dimmer {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-cutin-slash {
+  animation: cutin-slash 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-cutin-dimmer {
+  animation: cutin-dimmer 0.85s ease forwards;
+}
+
+/* アガリ（和了）専用インパクトアニメーション（手前から中央へドォンと迫り出すズームインパクト） */
+@keyframes win-impact {
+  0% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+  18% {
+    transform: scale(0.96);
+    opacity: 1;
+  }
+  28% {
+    transform: scale(1.03);
+    opacity: 1;
+  }
+  38% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  78% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+}
+
+@keyframes win-pulse-ring {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.9;
+  }
+  60% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.animate-win-impact {
+  animation: win-impact 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-win-ring {
+  animation: win-pulse-ring 1s ease-out forwards;
+}
