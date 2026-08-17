@@ -622,9 +622,7 @@ export default function App() {
   const lastActionText = lastPlayerLog ? `[${lastPlayerLog.player}] ${lastPlayerLog.text}` : undefined;
 
   return (
-    <div className={`relative w-full max-w-md h-full flex flex-col overflow-hidden transition-colors duration-300 shadow-2xl ${
-      isPlayerTurn && !gameState.roundOver ? 'bg-blue-50' : 'bg-slate-50'
-    }`}>
+    <div className="relative w-full max-w-md h-full flex flex-col overflow-hidden shadow-2xl bg-[#170e08]">
       {/* ヘッダー */}
       <Header
         round={gameState.round}
@@ -641,30 +639,13 @@ export default function App() {
 
       {/* メインゲーム画面 */}
       <main className="flex-1 p-2 flex flex-col gap-1.5 overflow-hidden w-full min-h-0">
-        {/* ポン・チー割り込みバナー */}
-        {isInterruptTurn && isMyInterrupt && gameState.interruptInfo && (
-          <div className="bg-amber-50 border border-amber-300 p-2 rounded-xl flex items-center justify-between gap-2 shrink-0 shadow-sm animate-pulse">
-            <div className="flex items-center gap-1.5">
-              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-              <div>
-                <p className="text-amber-900 font-black text-xs leading-tight">ポン・チーのチャンス！</p>
-                <p className="text-[10px] text-amber-700 font-medium">手札の光るカードを選んで実行できます</p>
-              </div>
-            </div>
-            <CardComponent 
-              card={gameState.interruptInfo.discardedCard} 
-              isSelected={false} 
-              sizeClass="w-9 h-12" 
-            />
-          </div>
-        )}
-
-        {/* ガイドメッセージ ＆ 山札・捨て札 */}
+        {/* ガイドメッセージ ＆ 山札・捨て札（ポン・チーチャンス時は枠全体と対象牌がハイライト） */}
         <GuideAndDeck
           guideMessage={getGuideMessage()}
           lastActionText={lastActionText}
           isPlayerTurn={isPlayerTurn}
           isDrawPhase={isDrawPhase}
+          isMyInterrupt={isMyInterrupt}
           roundOver={gameState.roundOver}
           deckCount={gameState.deck.length}
           lastDiscardItem={lastDiscardItem}

@@ -26,11 +26,11 @@ export const Field: React.FC<FieldProps> = ({
   const canSelectMeld = isPlayerTurn && isMainPhase;
 
   return (
-    <div className="flex-1 bg-emerald-50 rounded-xl border border-emerald-200 p-2 overflow-y-auto flex flex-col gap-2 shadow-inner">
+    <div className="flex-1 bg-[#0e3b26] rounded-xl border-2 border-[#185c3d] p-2 overflow-y-auto flex flex-col gap-2 shadow-[inset_0_4px_24px_rgba(0,0,0,0.55)]">
       {field.length === 0 && (
-        <div className="flex-1 flex flex-col items-center justify-center text-slate-400 py-8">
-          <p className="text-xs font-bold text-slate-400">場に公開されたセットはありません</p>
-          <p className="text-[10px] text-slate-400 mt-1">手札から3枚以上のコードやスケールを出せます</p>
+        <div className="flex-1 flex flex-col items-center justify-center text-emerald-300/60 py-8">
+          <p className="text-xs font-bold text-emerald-200/70">場に公開されたセットはありません</p>
+          <p className="text-[10px] text-emerald-300/50 mt-1">手札から3枚以上のコードやスケールを出せます</p>
         </div>
       )}
 
@@ -41,7 +41,7 @@ export const Field: React.FC<FieldProps> = ({
             const chordSymbol = getChordSymbol(meld.cards);
             const isCompleted = meld.cards.length === 4;
             const chordSuit = meld.cards[0]?.suit || 'red';
-            const symbolColorClass = chordSuit === 'blue' ? 'bg-blue-100 text-blue-800' : 'bg-rose-100 text-rose-800';
+            const symbolColorClass = chordSuit === 'blue' ? 'bg-blue-600 text-white' : 'bg-rose-600 text-white';
             const isSelected = selectedMeldId === meld.id;
             const ownerName = players[meld.ownerId]?.name || '誰か';
 
@@ -51,19 +51,19 @@ export const Field: React.FC<FieldProps> = ({
                 onClick={() => !isCompleted && canSelectMeld && onSelectMeld(meld.id)}
                 className={`p-1.5 rounded-xl border transition-all ${
                   isCompleted 
-                    ? 'bg-slate-100 border-slate-300 opacity-90 cursor-default' 
+                    ? 'bg-[#082014]/90 border-emerald-800/80 opacity-85 cursor-default' 
                     : isSelected 
-                      ? 'border-blue-500 ring-2 ring-blue-400 bg-blue-50/80 shadow-md cursor-pointer scale-102' 
+                      ? 'border-amber-400 ring-2 ring-amber-400 bg-[#164d33] shadow-lg cursor-pointer scale-[1.02]' 
                       : canSelectMeld
-                        ? 'bg-white border-slate-200 hover:border-blue-300 cursor-pointer shadow-2xs'
-                        : 'bg-white border-slate-200 cursor-default shadow-2xs'
+                        ? 'bg-[#082417]/95 border-emerald-600/70 hover:border-amber-400/80 cursor-pointer shadow-md'
+                        : 'bg-[#082417]/90 border-emerald-700/60 cursor-default shadow-xs'
                 }`}
               >
                 <div className="text-[10px] font-bold mb-1 flex justify-between gap-2 items-center">
-                  <span className={`px-1.5 py-0.2 rounded font-black ${isCompleted ? 'bg-slate-700 text-white' : symbolColorClass}`}>
+                  <span className={`px-1.5 py-0.2 rounded font-black shadow-xs ${isCompleted ? 'bg-slate-700 text-white' : symbolColorClass}`}>
                     {chordSymbol}
                   </span>
-                  <span className="text-slate-400 text-[9px] font-medium">{ownerName}</span>
+                  <span className="text-emerald-300/70 text-[9px] font-medium">{ownerName}</span>
                 </div>
                 <div className="flex -space-x-1.5">
                   {meld.cards.map((c, i) => (
@@ -86,7 +86,7 @@ export const Field: React.FC<FieldProps> = ({
 
       {/* 和音と音階の区切り（両方ある場合） */}
       {chordMelds.length > 0 && scaleMelds.length > 0 && (
-        <div className="border-t border-emerald-200/60 my-0.5" />
+        <div className="border-t border-emerald-600/40 my-0.5" />
       )}
 
       {/* 音階（スケール）エリア */}
@@ -94,7 +94,7 @@ export const Field: React.FC<FieldProps> = ({
         <div className="flex flex-wrap gap-1.5">
           {scaleMelds.map((meld) => {
             const scaleSuit = meld.cards[0]?.suit || 'red';
-            const scaleColorClass = scaleSuit === 'blue' ? 'bg-blue-100 text-blue-800' : 'bg-rose-100 text-rose-800';
+            const scaleColorClass = scaleSuit === 'blue' ? 'bg-blue-600 text-white' : 'bg-rose-600 text-white';
             const isSelected = selectedMeldId === meld.id;
             const ownerName = players[meld.ownerId]?.name || '誰か';
 
@@ -104,15 +104,15 @@ export const Field: React.FC<FieldProps> = ({
                 onClick={() => canSelectMeld && onSelectMeld(meld.id)}
                 className={`p-1.5 rounded-xl border transition-all ${
                   isSelected 
-                    ? 'border-blue-500 ring-2 ring-blue-400 bg-blue-50/80 shadow-md cursor-pointer scale-102' 
+                    ? 'border-amber-400 ring-2 ring-amber-400 bg-[#164d33] shadow-lg cursor-pointer scale-[1.02]' 
                     : canSelectMeld
-                      ? 'bg-white border-slate-200 hover:border-blue-300 cursor-pointer shadow-2xs'
-                      : 'bg-white border-slate-200 cursor-default shadow-2xs'
+                      ? 'bg-[#082417]/95 border-emerald-600/70 hover:border-amber-400/80 cursor-pointer shadow-md'
+                      : 'bg-[#082417]/90 border-emerald-700/60 cursor-default shadow-xs'
                 }`}
               >
                 <div className="text-[10px] font-bold mb-1 flex justify-between gap-2 items-center">
-                  <span className={`px-1.5 py-0.2 rounded font-black text-[9px] ${scaleColorClass}`}>スケール</span>
-                  <span className="text-slate-400 text-[9px] font-medium">{ownerName}</span>
+                  <span className={`px-1.5 py-0.2 rounded font-black text-[9px] shadow-xs ${scaleColorClass}`}>スケール</span>
+                  <span className="text-emerald-300/70 text-[9px] font-medium">{ownerName}</span>
                 </div>
                 <div className="flex -space-x-1.5">
                   {meld.cards.map((c, i) => (

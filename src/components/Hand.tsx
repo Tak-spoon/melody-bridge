@@ -46,12 +46,12 @@ export const Hand: React.FC<HandProps> = ({
   onInterruptAction
 }) => {
   return (
-    <footer className="bg-white border-t border-slate-200 p-2 shadow-lg shrink-0 z-10">
+    <footer className="bg-[#1f130b] border-t border-[#3f2717] p-2 shadow-2xl shrink-0 z-10">
       <div className="max-w-md mx-auto flex flex-col gap-1.5">
         {/* 操作ボタン & 手札枚数情報 */}
         <div className="flex justify-between items-center">
-          <h2 className="text-[11px] font-bold text-slate-800 shrink-0">
-            手札 <span className="text-slate-400 font-normal">({selectedHand.length}枚)</span>
+          <h2 className="text-[11px] font-black text-amber-100 shrink-0">
+            手札 <span className="text-amber-300/60 font-normal">({selectedHand.length}枚選択)</span>
           </h2>
           
           <div className="flex gap-1 flex-nowrap items-center justify-end shrink-0">
@@ -59,27 +59,27 @@ export const Hand: React.FC<HandProps> = ({
               <>
                 <button 
                   onClick={onPassInterrupt} 
-                  className="px-2.5 py-1 bg-slate-500 hover:bg-slate-600 active:scale-95 text-white text-[11px] font-bold rounded shadow-2xs transition"
+                  className="px-2.5 py-1 bg-slate-600 hover:bg-slate-500 border border-slate-400 active:scale-95 text-white text-[11px] font-black rounded shadow-xs transition"
                 >
                   パス
                 </button>
                 <button 
                   onClick={() => onInterruptAction('chii')} 
                   disabled={!canChii || selectedHand.length !== 2} 
-                  className="px-2.5 py-1 bg-indigo-500 hover:bg-indigo-600 disabled:bg-indigo-200 disabled:opacity-50 active:scale-95 text-white text-[11px] font-bold rounded shadow-2xs transition"
+                  className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 border border-indigo-400 disabled:bg-[#1a1109] disabled:border-[#382215] disabled:text-amber-900 disabled:opacity-40 active:scale-95 text-white text-[11px] font-black rounded shadow-xs transition"
                 >
                   チー
                 </button>
                 <button 
                   onClick={() => onInterruptAction('pon')} 
                   disabled={!canPon || selectedHand.length !== 2} 
-                  className="px-2.5 py-1 bg-rose-500 hover:bg-rose-600 disabled:bg-rose-200 disabled:opacity-50 active:scale-95 text-white text-[11px] font-bold rounded shadow-2xs transition"
+                  className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 border border-rose-400 disabled:bg-[#1a1109] disabled:border-[#382215] disabled:text-amber-900 disabled:opacity-40 active:scale-95 text-white text-[11px] font-black rounded shadow-xs transition"
                 >
                   ポン
                 </button>
               </>
             ) : isInterruptTurn ? (
-              <div className="text-[10px] text-amber-600 font-bold animate-pulse px-2 py-0.5 bg-amber-50 rounded border border-amber-200">
+              <div className="text-[10px] text-amber-300 font-bold animate-pulse px-2 py-0.5 bg-amber-950/80 rounded border border-amber-500/50">
                 割り込み確認中
               </div>
             ) : (
@@ -87,7 +87,7 @@ export const Hand: React.FC<HandProps> = ({
                 <button 
                   disabled={!isPlayerTurn || !isMainPhase || !isValidScaleSelection} 
                   onClick={() => onMeld('scale')} 
-                  className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 active:scale-95 text-white text-[10px] font-bold rounded shadow-2xs transition"
+                  className="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 border border-indigo-400 disabled:bg-[#170f08] disabled:border-[#331e11] disabled:text-amber-900/60 active:scale-95 text-white text-[10px] font-black rounded shadow-xs transition"
                   title="音階（3音以上）を場に出す"
                 >
                   スケール
@@ -95,7 +95,7 @@ export const Hand: React.FC<HandProps> = ({
                 <button 
                   disabled={!isPlayerTurn || !isMainPhase || !isValidChordSelection} 
                   onClick={() => onMeld('chord')} 
-                  className="px-2 py-1 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 active:scale-95 text-white text-[10px] font-bold rounded shadow-2xs transition"
+                  className="px-2 py-1 bg-rose-600 hover:bg-rose-500 border border-rose-400 disabled:bg-[#170f08] disabled:border-[#331e11] disabled:text-amber-900/60 active:scale-95 text-white text-[10px] font-black rounded shadow-xs transition"
                   title="和音（3音）を場に出す"
                 >
                   コード
@@ -103,7 +103,7 @@ export const Hand: React.FC<HandProps> = ({
                 <button 
                   disabled={!isPlayerTurn || !isMainPhase || !isValidAddSelection} 
                   onClick={onAdd} 
-                  className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 active:scale-95 text-white text-[10px] font-bold rounded shadow-2xs transition"
+                  className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 border border-emerald-400 disabled:bg-[#170f08] disabled:border-[#331e11] disabled:text-amber-900/60 active:scale-95 text-white text-[10px] font-black rounded shadow-xs transition"
                   title="選択した1枚を場のセットに付ける"
                 >
                   付け札
@@ -111,7 +111,7 @@ export const Hand: React.FC<HandProps> = ({
                 <button 
                   disabled={!isPlayerTurn || !isMainPhase || selectedHand.length !== 1} 
                   onClick={() => selectedHand.length === 1 && onDiscard(selectedHand[0])} 
-                  className="px-2.5 py-1 bg-slate-700 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 active:scale-95 text-white text-[10px] font-bold rounded shadow-2xs transition"
+                  className="px-2.5 py-1 bg-amber-700 hover:bg-amber-600 border border-amber-500 disabled:bg-[#170f08] disabled:border-[#331e11] disabled:text-amber-900/60 active:scale-95 text-white text-[10px] font-black rounded shadow-xs transition"
                   title="選択した1枚を手札から捨てる"
                 >
                   捨てる
@@ -121,8 +121,8 @@ export const Hand: React.FC<HandProps> = ({
           </div>
         </div>
 
-        {/* 手札カード一覧（8枚でも確実に1列に収まり、持ち上がり時も見切れないトレイ設計） */}
-        <div className="flex flex-nowrap min-h-[66px] items-center pt-2 pb-1.5 px-1 bg-slate-100 rounded-xl border border-slate-200 justify-center overflow-visible">
+        {/* 手札カードトレイ（ダークウッド調の凹凸トレイ） */}
+        <div className="flex flex-nowrap min-h-[66px] items-center pt-2 pb-1.5 px-1 bg-[#0c0805] rounded-xl border border-[#3f2717] shadow-[inset_0_3px_12px_rgba(0,0,0,0.8)] justify-center overflow-visible">
           {(() => {
             // ツモ牌がある場合は右端に独立させる
             const regularCards = justDrawnCardId 
@@ -152,7 +152,7 @@ export const Hand: React.FC<HandProps> = ({
                     onClick={() => onCardClick(card)}
                     sizeClass="w-[38px] h-[54px] xs:w-10 xs:h-14 sm:w-12 sm:h-17"
                     isHighlighted={isHighlighted}
-                    extraClass={isJustDrawn ? "ring-2 ring-emerald-400 shadow-md" : ""}
+                    extraClass={isJustDrawn ? "ring-2 ring-amber-400 shadow-lg" : ""}
                   />
                 </div>
               );
