@@ -5,6 +5,7 @@ import { Card as CardType, DiscardItem } from '../types/game';
 
 interface GuideAndDeckProps {
   guideMessage: string;
+  lastActionText?: string;
   isPlayerTurn: boolean;
   isDrawPhase: boolean;
   roundOver: boolean;
@@ -16,6 +17,7 @@ interface GuideAndDeckProps {
 
 export const GuideAndDeck: React.FC<GuideAndDeckProps> = ({
   guideMessage,
+  lastActionText,
   isPlayerTurn,
   isDrawPhase,
   roundOver,
@@ -27,17 +29,24 @@ export const GuideAndDeck: React.FC<GuideAndDeckProps> = ({
   const canDraw = isPlayerTurn && isDrawPhase && !roundOver;
 
   return (
-    <div className={`flex justify-between items-center px-3 py-2 rounded-xl border transition-all duration-300 shrink-0 ${
+    <div className={`flex justify-between items-center px-3 py-1.5 sm:py-2 rounded-xl border transition-all duration-300 shrink-0 ${
       isPlayerTurn && !roundOver 
         ? 'bg-blue-50/90 border-blue-300 shadow-sm' 
         : 'bg-white border-slate-200 shadow-2xs'
     }`}>
-      {/* ガイドメッセージ */}
+      {/* ガイドメッセージ ＆ 直前のアクション */}
       <div className="flex items-start gap-2 text-slate-800 font-bold text-xs pr-2 flex-1 min-w-0">
         <Info className={`w-4 h-4 shrink-0 mt-0.5 ${
           isPlayerTurn && !roundOver ? 'text-blue-600 animate-pulse' : 'text-slate-400'
         }`} />
-        <span className="leading-snug break-words">{guideMessage}</span>
+        <div className="flex flex-col leading-tight min-w-0">
+          {lastActionText && (
+            <span className="text-[10px] text-slate-500 font-medium truncate mb-0.5">
+              {lastActionText}
+            </span>
+          )}
+          <span className="break-words text-xs">{guideMessage}</span>
+        </div>
       </div>
       
       {/* 山札 ＆ 捨て札 */}

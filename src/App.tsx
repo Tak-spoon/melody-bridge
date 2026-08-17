@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { Card as CardType, GameState, MeldType } from './types/game';
-import { NOTE_NAMES } from './constants/music';
+import { NOTE_NAMES, NOTE_JP } from './constants/music';
 import { getChordSymbol, getChordInterpretation, getScaleInterpretation, tryAddCardToMeld } from './utils/musicTheory';
 import { setupRound, sortHand, getCombinations, getValidPonCombs, getValidChiiCombs, checkInterrupts, addLog, finishRound, checkWinCondition } from './utils/gameLogic';
 import { playMelody, getAudioContext } from './utils/audio';
@@ -101,7 +101,12 @@ export default function App() {
       s.players[s.turn] = p;
       
       const symbol = type === 'chord' ? getChordSymbol(interpretedSeq) : 'スケール';
-      const cardsStr = interpretedSeq.map(c => `${NOTE_NAMES[(c.interpretedAbsVal ?? c.absVal) % 7]}${Math.floor((c.interpretedAbsVal ?? c.absVal) / 7) + 3}`).join(', ');
+      const cardsStr = interpretedSeq.map(c => {
+        const val = c.interpretedAbsVal ?? c.absVal;
+        const idx = val % 7;
+        const o = Math.floor(val / 7) + 3;
+        return `${NOTE_NAMES[idx]}${o}(${NOTE_JP[idx]})`;
+      }).join(', ');
 
       s.field.push({ 
         id: `meld_${Date.now()}_${Math.random()}`, 
@@ -139,7 +144,9 @@ export default function App() {
       
       const cardObj = p.hand.find(c => c.id === cardId);
       if (!cardObj) return prev;
-      const cardStr = `${NOTE_NAMES[cardObj.absVal % 7]}${Math.floor(cardObj.absVal / 7) + 3}`;
+      const noteIndex = cardObj.absVal % 7;
+      const oct = Math.floor(cardObj.absVal / 7) + 3;
+      const cardStr = `${NOTE_NAMES[noteIndex]}${oct}(${NOTE_JP[noteIndex]})`;
       const targetName = meld.type === 'chord' ? getChordSymbol(meld.cards) : 'スケール';
       const ownerName = s.players[meld.ownerId]?.name || '誰か';
 
@@ -151,8 +158,8 @@ export default function App() {
 
       const newTargetName = meld.type === 'chord' ? getChordSymbol(newSeq) : 'スケール';
 
-      s.message = `${p.name} が ${cardStr} を付け札`;
-      addLog(s, p.name, `${ownerName}の [${targetName}] に ${cardStr} を付け札 → [${newTargetName}]`);
+      s.message = `${p.name} が ${cardStr}を付け札`;
+      addLog(s, p.name, `${ownerName}の [${targetName}] に ${cardStr}を付け札 → [${newTargetName}]`);
 
       playMelody(meld.cards.map(c => c.interpretedAbsVal ?? c.absVal));
       checkWinCondition(s);
@@ -185,8 +192,10 @@ export default function App() {
       s.discardPile.push({ card: discardedCard, discarderId: s.turn, isHidden: false });
       s.players[s.turn] = p;
 
-      const noteText = `${NOTE_NAMES[discardedCard.absVal % 7]}${Math.floor(discardedCard.absVal / 7) + 3}`;
-      addLog(s, p.name, `${noteText} を捨てた`);
+      const noteIndex = discardedCard.absVal % 7;
+      const oct = Math.floor(discardedCard.absVal / 7) + 3;
+      const noteText = `${NOTE_NAMES[noteIndex]}${oct}(${NOTE_JP[noteIndex]})`;
+      addLog(s, p.name, `${noteText}を捨てた`);
       
       if (checkWinCondition(s)) return s;
 
@@ -265,7 +274,12 @@ export default function App() {
       
       const symbol = type === 'pon' ? getChordSymbol(seq) : 'スケール';
       const actionName = type === 'pon' ? `ポン` : `チー`;
-      const cardsStr = seq.map(c => `${NOTE_NAMES[(c.interpretedAbsVal ?? c.absVal) % 7]}${Math.floor((c.interpretedAbsVal ?? c.absVal) / 7) + 3}`).join(', ');
+      const cardsStr = seq.map(c => {
+        const val = c.interpretedAbsVal ?? c.absVal;
+        const idx = val % 7;
+        const o = Math.floor(val / 7) + 3;
+        return `${NOTE_NAMES[idx]}${o}(${NOTE_JP[idx]})`;
+      }).join(', ');
 
       s.field.push({ 
         id: `meld_${Date.now()}_${Math.random()}`, 
@@ -387,103 +401,118 @@ export default function App() {
   };
 
   // -------------------------------------------------------------
-  // CPU 思考ルーチン
+  // CPU 思考ルーチン（スタック・無限ループ防止）
   // -------------------------------------------------------------
-  const isCpuActing = useRef(false);
   useEffect(() => {
     if (gameState.winner !== null || gameState.roundOver) return;
-    
-    const runGameLoop = async () => {
-      isCpuActing.current = true;
-      await new Promise(r => setTimeout(r, 600));
 
+    let isSubscribed = true;
+
+    const timer = setTimeout(() => {
+      if (!isSubscribed) return;
+
+      // 割り込み（ポン・チー）フェーズの処理
       if (gameState.phase === 'interrupt') {
         if (!gameState.interruptInfo || !gameState.interruptInfo.candidates || gameState.interruptInfo.candidates.length === 0) {
-          isCpuActing.current = false;
           return;
         }
         const candidate = gameState.interruptInfo.candidates[0];
-        
+
+        // プレイヤー（あなた）の割り込み確認
         if (candidate.playerId === 0) {
           const discardedCard = gameState.interruptInfo.discardedCard;
           const myHand = gameState.players[0].hand;
           const hasPon = getValidPonCombs(myHand, discardedCard).length > 0;
           const hasChii = (gameState.interruptInfo.discarderId === 3) && (getValidChiiCombs(myHand, discardedCard).length > 0);
 
+          // プレイヤーに権利がなければ自動パス
           if (!hasPon && !hasChii) {
             doPassInterrupt();
-            isCpuActing.current = false;
-            return;
           }
+          return;
         }
 
+        // CPUの割り込みアクション
         if (gameState.players[candidate.playerId].isCPU) {
           const ponAction = candidate.actions.find(a => a.type === 'pon');
           const chiiAction = candidate.actions.find(a => a.type === 'chii');
-          if (ponAction) doInterruptAction(candidate.playerId, 'pon', ponAction.validCombs[0]);
-          else if (chiiAction) doInterruptAction(candidate.playerId, 'chii', chiiAction.validCombs[0]);
-          else doPassInterrupt();
+          if (ponAction) {
+            doInterruptAction(candidate.playerId, 'pon', ponAction.validCombs[0]);
+          } else if (chiiAction) {
+            doInterruptAction(candidate.playerId, 'chii', chiiAction.validCombs[0]);
+          } else {
+            doPassInterrupt();
+          }
         }
-        isCpuActing.current = false;
         return;
       }
 
+      // 通常手番の処理
       const p = gameState.players[gameState.turn];
-      if (!p.isCPU) { isCpuActing.current = false; return; }
+      if (!p.isCPU) return;
 
       if (gameState.phase === 'draw') {
         doDraw();
       } else if (gameState.phase === 'main') {
-        let actionTaken = false;
-        const hand = [...p.hand];
-        
-        // 役（スケール・コード）の成立チェック
-        if (hand.length >= 3) {
-          for (let size = Math.min(hand.length, 5); size >= 3; size--) {
-            const combs = getCombinations(hand, size);
+        const currentHand = [...p.hand];
+
+        // 1. 役出しを試みる（スケール・コード）
+        let melded = false;
+        if (currentHand.length >= 3) {
+          for (let size = Math.min(currentHand.length, 5); size >= 3; size--) {
+            const combs = getCombinations(currentHand, size);
             for (const comb of combs) {
               const scaleSeq = getScaleInterpretation(comb);
-              if (scaleSeq) { 
-                doMeld(comb.map(c => c.id), 'scale', scaleSeq); 
-                actionTaken = true; 
-                break; 
+              if (scaleSeq) {
+                doMeld(comb.map(c => c.id), 'scale', scaleSeq);
+                melded = true;
+                break;
               }
               const chordSeq = getChordInterpretation(comb);
-              if (chordSeq && size === 3) { 
-                doMeld(comb.map(c => c.id), 'chord', chordSeq); 
-                actionTaken = true; 
-                break; 
+              if (chordSeq && size === 3) {
+                doMeld(comb.map(c => c.id), 'chord', chordSeq);
+                melded = true;
+                break;
               }
             }
-            if (actionTaken) break;
+            if (melded) break;
           }
         }
 
-        // 付け札チェック
-        if (!actionTaken) {
-          for (const card of hand) {
-            for (const meld of gameState.field) {
-              const newSeq = tryAddCardToMeld(card, meld);
-              if (newSeq) { 
-                doAdd(card.id, meld.id, newSeq); 
-                actionTaken = true; 
-                break; 
-              }
-            }
-            if (actionTaken) break;
-          }
+        if (melded) {
+          return; // 役を出した後は次のレンダリングで付け札や捨て札を判定
         }
 
-        // 何もなければ1枚捨てる
-        if (!actionTaken) {
-          await new Promise(r => setTimeout(r, 600));
-          doDiscard(hand[Math.floor(Math.random() * hand.length)].id);
+        // 2. 付け札を試みる
+        let added = false;
+        for (const card of currentHand) {
+          for (const meld of gameState.field) {
+            const newSeq = tryAddCardToMeld(card, meld);
+            if (newSeq) {
+              doAdd(card.id, meld.id, newSeq);
+              added = true;
+              break;
+            }
+          }
+          if (added) break;
+        }
+
+        if (added) {
+          return; // 付け札をした後は次のレンダリングで追加の付け札や捨て札を判定
+        }
+
+        // 3. 役出しも付け札も完了したら、必ず手札から1枚捨ててターンを終了
+        if (currentHand.length > 0) {
+          const discardTarget = currentHand[Math.floor(Math.random() * currentHand.length)];
+          doDiscard(discardTarget.id);
         }
       }
-      isCpuActing.current = false;
-    };
+    }, 600);
 
-    if (!isCpuActing.current) runGameLoop();
+    return () => {
+      isSubscribed = false;
+      clearTimeout(timer);
+    };
   }, [gameState.turn, gameState.phase, gameState.actionCount, gameState.winner, gameState.roundOver, gameState.interruptInfo, doDraw, doMeld, doAdd, doDiscard, doPassInterrupt, doInterruptAction]);
 
   // ラウンド進行
@@ -506,26 +535,26 @@ export default function App() {
     if (gameState.roundOver) return gameState.message;
 
     if (gameState.phase === 'draw') {
-      if (gameState.turn === 0) return '👉 あなたのターンです。光っている山札をタップして引いてください。';
-      return `⏳ ${gameState.players[gameState.turn].name} のターン（ドロー中）...`;
+      if (gameState.turn === 0) return 'あなたのターンです。山札から1枚引いてください。';
+      return `${gameState.players[gameState.turn].name} のターン（ドロー中）`;
     }
     
     if (gameState.phase === 'main') {
       if (gameState.turn === 0) {
         if (selectedHand.length > 0) {
-          if (selectedHand.length === 1 && isValidAddSelection) return '👉 「付け札」または「捨てる」が可能です。';
-          if (selectedHand.length === 1) return '👉 不要なら「捨てる」、役を作るならさらにカードを選択してください。';
-          if (isValidScaleSelection || isValidChordSelection) return '👉 役が完成しています！アクションボタンで場に出せます。';
-          return '👉 その組み合わせでは役を作れません。選び直すか1枚だけ捨ててください。';
+          if (selectedHand.length === 1 && isValidAddSelection) return '「付け札」または「捨てる」が可能です。';
+          if (selectedHand.length === 1) return '不要なら「捨てる」、役を作るならさらにカードを選択してください。';
+          if (isValidScaleSelection || isValidChordSelection) return '役が完成しています。アクションボタンで場に出せます。';
+          return 'その組み合わせでは役を作れません。選び直すか1枚だけ捨ててください。';
         }
-        return '👉 役（3枚以上）を作って出すか、不要なカードを1枚選んで捨ててください。';
+        return '役を作って場に出すか、不要なカードを1枚選んで捨ててください。';
       }
-      return `⏳ ${gameState.players[gameState.turn].name} が考え中...`;
+      return `${gameState.players[gameState.turn].name} が考え中...`;
     }
 
     if (gameState.phase === 'interrupt') {
-      if (isMyInterrupt) return '⚡ ポン・チーのチャンス！光っているカードをタップしてください。';
-      return '⏳ 他プレイヤーの割り込みを確認中...';
+      if (isMyInterrupt) return 'ポン・チーが可能です。カードを選択してください。';
+      return '他プレイヤーの割り込みを確認中...';
     }
 
     return gameState.message;
@@ -534,6 +563,10 @@ export default function App() {
   const lastDiscardItem = gameState.discardPile.length > 0 
     ? gameState.discardPile[gameState.discardPile.length - 1] 
     : undefined;
+
+  // 直前のプレイヤーアクション（システムメッセージ以外の最新ログ）
+  const lastPlayerLog = [...(gameState.logs || [])].reverse().find(l => l.player !== 'システム');
+  const lastActionText = lastPlayerLog ? `[${lastPlayerLog.player}] ${lastPlayerLog.text}` : undefined;
 
   return (
     <div className={`w-full max-w-md h-full flex flex-col overflow-hidden transition-colors duration-300 shadow-2xl ${
@@ -576,6 +609,7 @@ export default function App() {
         {/* ガイドメッセージ ＆ 山札・捨て札 */}
         <GuideAndDeck
           guideMessage={getGuideMessage()}
+          lastActionText={lastActionText}
           isPlayerTurn={isPlayerTurn}
           isDrawPhase={isDrawPhase}
           roundOver={gameState.roundOver}

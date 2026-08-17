@@ -38,7 +38,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
         </div>
 
         <h2 className="text-lg font-black text-slate-800 mb-1">
-          {isFinalRound ? '🏆 最終結果発表' : `R${round} 終了`}
+          {isFinalRound ? '最終結果発表' : `R${round} 終了`}
         </h2>
         <p className="text-xs font-bold text-blue-600 mb-3.5 bg-blue-50 py-1 px-2 rounded-lg border border-blue-100">
           {message}
@@ -62,8 +62,13 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
                       : 'text-slate-700 bg-white border border-slate-200/60'
                   }`}
                 >
-                  <span className="flex items-center gap-1">
-                    {isWinner && '👑'} {p.name}
+                  <span className="flex items-center gap-1.5">
+                    {isWinner && (
+                      <span className="text-[9px] bg-amber-500 text-white px-1 py-0.2 rounded font-bold">
+                        1位
+                      </span>
+                    )}
+                    {p.name}
                   </span>
                   <span className={`${isWinner ? 'text-amber-700 font-black' : 'text-slate-600'}`}>
                     {scores[idx]} pt

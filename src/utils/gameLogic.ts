@@ -195,7 +195,7 @@ export const finishRound = (state: GameState, reasonMsg: string): void => {
   });
   state.scores = newScores;
   state.message = reasonMsg;
-  addLog(state, 'システム', `🏁 ${reasonMsg} ラウンド終了`);
+  addLog(state, 'システム', `${reasonMsg} ラウンド終了`);
 };
 
 /**
