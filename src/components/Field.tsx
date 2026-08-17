@@ -7,6 +7,7 @@ interface FieldProps {
   field: Meld[];
   players: Player[];
   selectedMeldId: string | null;
+  lastAddedCardId?: string | null;
   isPlayerTurn: boolean;
   isMainPhase: boolean;
   onSelectMeld: (meldId: string) => void;
@@ -16,6 +17,7 @@ export const Field: React.FC<FieldProps> = ({
   field,
   players,
   selectedMeldId,
+  lastAddedCardId,
   isPlayerTurn,
   isMainPhase,
   onSelectMeld
@@ -65,18 +67,28 @@ export const Field: React.FC<FieldProps> = ({
                   </span>
                   <span className="text-emerald-300/70 text-[9px] font-medium">{ownerName}</span>
                 </div>
-                <div className="flex -space-x-1.5">
-                  {meld.cards.map((c, i) => (
-                    <div key={`${meld.id}_card_${i}`} className="transform hover:z-10 transition-transform">
-                      <CardComponent 
-                        card={c} 
-                        isSelected={false} 
-                        interpretedAbsVal={c.interpretedAbsVal} 
-                        interpretedSuit={c.suit} 
-                        sizeClass="w-8 h-11 sm:w-9 sm:h-12" 
-                      />
-                    </div>
-                  ))}
+                <div className="flex -space-x-1.5 overflow-visible">
+                  {meld.cards.map((c) => {
+                    const isNewlyAdded = c.id === lastAddedCardId;
+                    return (
+                      <div 
+                        key={c.id} 
+                        className={`transition-all duration-300 transform ${
+                          isNewlyAdded 
+                            ? 'animate-card-insert ring-2 ring-amber-400 rounded-md sm:rounded-lg shadow-[0_0_12px_rgba(251,191,36,0.85)] z-20' 
+                            : 'hover:z-10'
+                        }`}
+                      >
+                        <CardComponent 
+                          card={c} 
+                          isSelected={false} 
+                          interpretedAbsVal={c.interpretedAbsVal} 
+                          interpretedSuit={c.suit} 
+                          sizeClass="w-8 h-11 sm:w-9 sm:h-12" 
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -114,18 +126,28 @@ export const Field: React.FC<FieldProps> = ({
                   <span className={`px-1.5 py-0.2 rounded font-black text-[9px] shadow-xs ${scaleColorClass}`}>スケール</span>
                   <span className="text-emerald-300/70 text-[9px] font-medium">{ownerName}</span>
                 </div>
-                <div className="flex -space-x-1.5">
-                  {meld.cards.map((c, i) => (
-                    <div key={`${meld.id}_card_${i}`} className="transform hover:z-10 transition-transform">
-                      <CardComponent 
-                        card={c} 
-                        isSelected={false} 
-                        interpretedAbsVal={c.interpretedAbsVal} 
-                        interpretedSuit={c.suit} 
-                        sizeClass="w-8 h-11 sm:w-9 sm:h-12" 
-                      />
-                    </div>
-                  ))}
+                <div className="flex -space-x-1.5 overflow-visible">
+                  {meld.cards.map((c) => {
+                    const isNewlyAdded = c.id === lastAddedCardId;
+                    return (
+                      <div 
+                        key={c.id} 
+                        className={`transition-all duration-300 transform ${
+                          isNewlyAdded 
+                            ? 'animate-card-insert ring-2 ring-amber-400 rounded-md sm:rounded-lg shadow-[0_0_12px_rgba(251,191,36,0.85)] z-20' 
+                            : 'hover:z-10'
+                        }`}
+                      >
+                        <CardComponent 
+                          card={c} 
+                          isSelected={false} 
+                          interpretedAbsVal={c.interpretedAbsVal} 
+                          interpretedSuit={c.suit} 
+                          sizeClass="w-8 h-11 sm:w-9 sm:h-12" 
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );

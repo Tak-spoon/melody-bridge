@@ -135,3 +135,29 @@ body {
 .animate-win-ring {
   animation: win-pulse-ring 1s ease-out forwards;
 }
+
+/* 付け札カードのスライドイン差し込みアニメーション（上からスッと落ちて吸い込まれるように差し込まれる） */
+@keyframes card-insert-slide {
+  0% {
+    transform: translateY(-24px) scale(1.15);
+    opacity: 0;
+    filter: brightness(1.25);
+    box-shadow: 0 0 16px rgba(251, 191, 36, 0.9);
+  }
+  50% {
+    transform: translateY(2px) scale(1.04);
+    opacity: 1;
+    filter: brightness(1.1);
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.6);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    filter: brightness(1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.animate-card-insert {
+  animation: card-insert-slide 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

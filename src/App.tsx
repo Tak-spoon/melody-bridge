@@ -35,6 +35,9 @@ export default function App() {
   // アガリ専用演出表示状態（中央ズームインパクト）
   const [winEffectName, setWinEffectName] = useState<string | null>(null);
 
+  // 付け札されたカードID（スライドイン差し込み演出用）
+  const [lastAddedCardId, setLastAddedCardId] = useState<string | null>(null);
+
   // 初回ユーザー操作時にWeb Audio APIを有効化
   const initAudio = () => {
     getAudioContext();
@@ -190,6 +193,12 @@ export default function App() {
       s.players[s.turn] = p;
       meld.cards = newSeq; 
       s.field[meldIndex] = meld;
+
+      // 差し込みアニメーションのトリガー
+      setLastAddedCardId(cardId);
+      setTimeout(() => {
+        setLastAddedCardId(null);
+      }, 350);
 
       const newTargetName = meld.type === 'chord' ? getChordSymbol(newSeq) : 'スケール';
 
@@ -719,6 +728,7 @@ export default function App() {
           field={gameState.field}
           players={gameState.players}
           selectedMeldId={selectedMeld}
+          lastAddedCardId={lastAddedCardId}
           isPlayerTurn={isPlayerTurn}
           isMainPhase={isMainPhase}
           onSelectMeld={(meldId) => setSelectedMeld(prev => prev === meldId ? null : meldId)}
