@@ -168,3 +168,21 @@ export const playMelody = (absVals: number[], customCtx?: AudioContext | null): 
     playPianoNote(ctx, freq, startTime, 1.4, 0.22);
   });
 };
+
+/**
+ * 手札カード選択時に、そのカードの音（単音ピアノ）を軽やかに再生します。
+ * タップした瞬間に澄み切ったピアノの単音（ポーン）が響きます。
+ */
+export const playCardTone = (absVal: number, customCtx?: AudioContext | null): void => {
+  const ctx = customCtx || getAudioContext();
+  if (!ctx) return;
+
+  if (ctx.state === 'suspended') {
+    ctx.resume();
+  }
+
+  if (absVal < 0 || absVal >= FREQUENCIES.length) return;
+  const freq = FREQUENCIES[absVal];
+  const now = ctx.currentTime;
+  playPianoNote(ctx, freq, now, 0.85, 0.28);
+};

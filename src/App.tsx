@@ -4,7 +4,7 @@ import { Card as CardType, GameState, MeldType } from './types/game';
 import { NOTE_NAMES, NOTE_JP } from './constants/music';
 import { getChordSymbol, getChordInterpretation, getScaleInterpretation, tryAddCardToMeld } from './utils/musicTheory';
 import { setupRound, sortHand, getCombinations, getValidPonCombs, getValidChiiCombs, checkInterrupts, addLog, finishRound, checkWinCondition } from './utils/gameLogic';
-import { playMelody, playCutInSound, playWinSound, getAudioContext } from './utils/audio';
+import { playMelody, playCutInSound, playWinSound, playCardTone, getAudioContext } from './utils/audio';
 
 import { Header } from './components/Header';
 import { PlayerStatus } from './components/PlayerStatus';
@@ -15,6 +15,7 @@ import { Card as CardComponent } from './components/Card';
 import { CutIn } from './components/CutIn';
 import { WinEffect } from './components/WinEffect';
 import { RuleModal } from './components/Modals/RuleModal';
+import { OptionModal } from './components/Modals/OptionModal';
 import { DiscardModal } from './components/Modals/DiscardModal';
 import { LogModal } from './components/Modals/LogModal';
 import { GameOverModal } from './components/Modals/GameOverModal';
@@ -26,8 +27,39 @@ export default function App() {
   
   // モーダル表示状態
   const [showRuleModal, setShowRuleModal] = useState(false);
+  const [showOptionModal, setShowOptionModal] = useState(false);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
+
+  // サウンド・オプション設定（localStorageで永続化）
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('mb_sound_enabled');
+      return saved !== null ? JSON.parse(saved) : true;
+    } catch { return true; }
+  });
+  const [cardToneEnabled, setCardToneEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('mb_card_tone_enabled');
+      return saved !== null ? JSON.parse(saved) : true;
+    } catch { return true; }
+  });
+
+  const toggleSound = () => {
+    setSoundEnabled(prev => {
+      const next = !prev;
+      try { localStorage.setItem('mb_sound_enabled', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
+  const toggleCardTone = () => {
+    setCardToneEnabled(prev => {
+      const next = !prev;
+      try { localStorage.setItem('mb_card_tone_enabled', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
 
   // ポン・チー カットイン表示状態（横スライド）
   const [cutInInfo, setCutInInfo] = useState<{ type: 'pon' | 'chii'; playerName: string } | null>(null);
@@ -357,7 +389,10 @@ export default function App() {
       
       const winner = s.players.find(pl => pl.hand.length === 0);
       if (winner) {
-        triggerWinSequence(winner.id, `${winner.name} がアガリました！`);
+        // カットイン演出の完了を待ってからアガリ演出を起動
+        setTimeout(() => {
+          triggerWinSequence(winner.id, `${winner.name} がアガリました！`);
+        }, 900);
       }
       s.actionCount += 1;
       return s;
@@ -497,8 +532,14 @@ export default function App() {
 
   const handleCardClick = (card: CardType) => {
     initAudio();
+
     if (isInterruptTurn && isMyInterrupt) {
       if (highlightCardIds.has(card.id)) {
+        // ポン・チー候補の選択時
+        if (soundEnabled && cardToneEnabled) {
+          playCardTone(card.interpretedAbsVal ?? card.absVal);
+        }
+
         // タップされたカードを含む有効な組み合わせ一覧
         const matchingCombs = allValidCombs.filter(c => c.cardIds.includes(card.id));
         if (matchingCombs.length > 0) {
@@ -520,16 +561,34 @@ export default function App() {
     }
 
     if (!isPlayerTurn && !isMyInterrupt) return;
+
+    // 「未選択 → 選択（持ち上げ）時」のみ音を鳴らし、解除（戻す）時は鳴らさない
+    const isSelecting = !selectedHand.includes(card.id);
+    if (isSelecting && soundEnabled && cardToneEnabled) {
+      playCardTone(card.interpretedAbsVal ?? card.absVal);
+    }
+
     setSelectedHand(prev => prev.includes(card.id) ? prev.filter(id => id !== card.id) : [...prev, card.id]);
   };
 
   // -------------------------------------------------------------
-  // CPU 思考ルーチン（スタック・無限ループ防止）
+  // CPU 思考ルーチン（スタック・無限ループ防止 ＆ 自然な思考テンポ）
   // -------------------------------------------------------------
   useEffect(() => {
     if (gameState.winner !== null || gameState.roundOver) return;
 
     let isSubscribed = true;
+
+    // プレイヤーが目で追える自然な思考時間（フェーズごとに最適化）
+    let delay = 900;
+    if (gameState.phase === 'draw') {
+      delay = 850; // ドロー前の間
+    } else if (gameState.phase === 'main') {
+      // 役出しや付け札の直後はアニメーションと余韻を味わうため1100ms
+      delay = 1000;
+    } else if (gameState.phase === 'interrupt') {
+      delay = 850; // 割り込み判定の間
+    }
 
     const timer = setTimeout(() => {
       if (!isSubscribed) return;
@@ -630,7 +689,7 @@ export default function App() {
           doDiscard(discardTarget.id);
         }
       }
-    }, 600);
+    }, delay);
 
     return () => {
       isSubscribed = false;
@@ -653,31 +712,31 @@ export default function App() {
     setSelectedMeld(null);
   };
 
-  // ガイド文言
+  // ガイド文言（短く明確で自然な日本語、1行で美しく収まる）
   const getGuideMessage = () => {
     if (gameState.roundOver) return gameState.message;
 
     if (gameState.phase === 'draw') {
-      if (gameState.turn === 0) return 'あなたのターンです。山札から1枚引いてください。';
-      return `${gameState.players[gameState.turn].name} のターン（ドロー中）`;
+      if (gameState.turn === 0) return '山札を引いてください。';
+      return `${gameState.players[gameState.turn].name} のドロー`;
     }
     
     if (gameState.phase === 'main') {
       if (gameState.turn === 0) {
         if (selectedHand.length > 0) {
-          if (selectedHand.length === 1 && isValidAddSelection) return '「付け札」または「捨てる」が可能です。';
-          if (selectedHand.length === 1) return '不要なら「捨てる」、役を作るならさらにカードを選択してください。';
-          if (isValidScaleSelection || isValidChordSelection) return '役が完成しています。アクションボタンで場に出せます。';
-          return 'その組み合わせでは役を作れません。選び直すか1枚だけ捨ててください。';
+          if (selectedHand.length === 1 && isValidAddSelection) return '場のセットをタップして「付け札」するか、捨てられます。';
+          if (selectedHand.length === 1) return '1枚捨てるか、役を選んでください。';
+          if (isValidScaleSelection || isValidChordSelection) return '役が完成しました（場に出せます）';
+          return '役が揃っていません（選び直してください）';
         }
-        return '役を作って場に出すか、不要なカードを1枚選んで捨ててください。';
+        return '役を場に出すか、1枚捨ててください。';
       }
-      return `${gameState.players[gameState.turn].name} が考え中...`;
+      return `${gameState.players[gameState.turn].name} が思考中…`;
     }
 
     if (gameState.phase === 'interrupt') {
-      if (isMyInterrupt) return 'ポン・チーが可能です。手札の光るカードを選んでください。';
-      return '他プレイヤーの割り込みを確認中...';
+      if (isMyInterrupt) return 'ポン・チーが可能です。手札を選んでください。';
+      return '割り込みを確認中…';
     }
 
     return gameState.message;
@@ -687,9 +746,9 @@ export default function App() {
     ? gameState.discardPile[gameState.discardPile.length - 1] 
     : undefined;
 
-  // 直前のプレイヤーアクション（システムメッセージ以外の最新ログ）
+  // 直前のプレイヤーアクション（システムメッセージ以外の最新ログ全文）
   const lastPlayerLog = [...(gameState.logs || [])].reverse().find(l => l.player !== 'システム');
-  const lastActionText = lastPlayerLog ? `[${lastPlayerLog.player}] ${lastPlayerLog.text}` : undefined;
+  const lastActionText = lastPlayerLog ? `${lastPlayerLog.player}: ${lastPlayerLog.text}` : undefined;
 
   return (
     <div className="relative w-full max-w-md h-full flex flex-col overflow-hidden shadow-2xl bg-[#170e08]">
@@ -697,6 +756,7 @@ export default function App() {
       <Header
         round={gameState.round}
         onOpenRules={() => setShowRuleModal(true)}
+        onOpenOptions={() => setShowOptionModal(true)}
         onOpenLogs={() => setShowLogModal(true)}
       />
 
@@ -764,6 +824,15 @@ export default function App() {
       <RuleModal
         isOpen={showRuleModal}
         onClose={() => setShowRuleModal(false)}
+      />
+
+      <OptionModal
+        isOpen={showOptionModal}
+        soundEnabled={soundEnabled}
+        cardToneEnabled={cardToneEnabled}
+        onToggleSound={toggleSound}
+        onToggleCardTone={toggleCardTone}
+        onClose={() => setShowOptionModal(false)}
       />
 
       <DiscardModal
