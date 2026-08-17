@@ -77,6 +77,7 @@ export const playPianoNote = (
 
 /**
  * ポン・チーのカットイン発生時の決定効果音（SE）
+ * 遅延なく瞬時に立ち上がるシャープなインパクト音
  */
 export const playCutInSound = (type: 'pon' | 'chii', customCtx?: AudioContext | null): void => {
   const ctx = customCtx || getAudioContext();
@@ -88,35 +89,39 @@ export const playCutInSound = (type: 'pon' | 'chii', customCtx?: AudioContext | 
 
   try {
     const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gainNode = ctx.createGain();
 
     if (type === 'pon') {
-      // ポン：キレのあるインパクト音
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(440, now);
-      osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+      // ポン：瞬時に立ち上がる爽快なアタック打撃音（バシィッ！）
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
 
-      gainNode.gain.setValueAtTime(0.3, now);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(650, now);
+      osc.frequency.exponentialRampToValueAtTime(160, now + 0.12);
+
+      gainNode.gain.setValueAtTime(0.4, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
 
       osc.connect(gainNode);
       gainNode.connect(ctx.destination);
       osc.start(now);
-      osc.stop(now + 0.3);
+      osc.stop(now + 0.15);
     } else {
       // チー：軽快なスイープ音
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(330, now);
-      osc.frequency.exponentialRampToValueAtTime(660, now + 0.1);
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
 
-      gainNode.gain.setValueAtTime(0.25, now);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(350, now);
+      osc.frequency.exponentialRampToValueAtTime(700, now + 0.1);
+
+      gainNode.gain.setValueAtTime(0.3, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
 
       osc.connect(gainNode);
       gainNode.connect(ctx.destination);
       osc.start(now);
-      osc.stop(now + 0.25);
+      osc.stop(now + 0.18);
     }
   } catch {
     // オーディオエラーのフォールバック

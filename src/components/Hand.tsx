@@ -7,6 +7,8 @@ interface HandProps {
   selectedHand: string[];
   justDrawnCardId: string | null;
   highlightCardIds: Set<string>;
+  formedMeldName?: string | null;
+  formedMeldType?: 'chord' | 'scale' | 'add' | null;
   isPlayerTurn: boolean;
   isMainPhase: boolean;
   isInterruptTurn: boolean;
@@ -29,6 +31,8 @@ export const Hand: React.FC<HandProps> = ({
   selectedHand,
   justDrawnCardId,
   highlightCardIds,
+  formedMeldName,
+  formedMeldType,
   isPlayerTurn,
   isMainPhase,
   isInterruptTurn,
@@ -45,14 +49,37 @@ export const Hand: React.FC<HandProps> = ({
   onPassInterrupt,
   onInterruptAction
 }) => {
+  // ツモ牌がある場合は右端に独立させる手札リスト
+  const regularCards = justDrawnCardId 
+    ? hand.filter(c => c.id !== justDrawnCardId)
+    : hand;
+  const justDrawnCard = justDrawnCardId 
+    ? hand.find(c => c.id === justDrawnCardId) 
+    : null;
+  
+  const renderCardsList = justDrawnCard 
+    ? [...regularCards, justDrawnCard] 
+    : regularCards;
+
   return (
     <footer className="bg-[#1f130b] border-t border-[#3f2717] p-2 shadow-2xl shrink-0 z-10">
       <div className="max-w-md mx-auto flex flex-col gap-1.5">
-        {/* 操作ボタン & 手札枚数情報 */}
-        <div className="flex justify-between items-center">
-          <h2 className="text-[11px] font-black text-amber-100 shrink-0">
-            手札 <span className="text-amber-300/60 font-normal">({selectedHand.length}枚選択)</span>
-          </h2>
+        {/* 操作ボタン & 手札枚数情報 & 成立役バッジ */}
+        <div className="flex justify-between items-center min-h-[28px]">
+          <div className="flex items-center gap-2 shrink-0">
+            <h2 className="text-[11px] font-black text-amber-100 shrink-0">
+              手札 <span className="text-amber-300/60 font-normal">({selectedHand.length}枚選択)</span>
+            </h2>
+          </div>
+
+          {/* 成立役名表示（シンプル＆スマート） */}
+          {formedMeldName && (
+            <div className="flex-1 flex justify-center px-1">
+              <span className="px-2.5 py-0.5 rounded-md text-[11px] font-black tracking-wider bg-[#2a1a0f] border border-amber-400/80 text-amber-200 shadow-inner animate-in fade-in zoom-in-95 duration-150 whitespace-nowrap">
+                {formedMeldName}
+              </span>
+            </div>
+          )}
           
           <div className="flex gap-1 flex-nowrap items-center justify-end shrink-0">
             {isInterruptTurn && isMyInterrupt ? (
@@ -123,41 +150,29 @@ export const Hand: React.FC<HandProps> = ({
 
         {/* 手札カードトレイ（ダークウッド調の凹凸トレイ） */}
         <div className="flex flex-nowrap min-h-[66px] items-center pt-2 pb-1.5 px-1 bg-[#0c0805] rounded-xl border border-[#3f2717] shadow-[inset_0_3px_12px_rgba(0,0,0,0.8)] justify-center overflow-visible">
-          {(() => {
-            // ツモ牌がある場合は右端に独立させる
-            const regularCards = justDrawnCardId 
-              ? hand.filter(c => c.id !== justDrawnCardId)
-              : hand;
-            const justDrawnCard = justDrawnCardId 
-              ? hand.find(c => c.id === justDrawnCardId) 
-              : null;
-            
-            const renderCardsList = justDrawnCard 
-              ? [...regularCards, justDrawnCard] 
-              : regularCards;
+          {renderCardsList.map((card) => {
+            const isJustDrawn = card.id === justDrawnCardId;
+            const isSelected = selectedHand.includes(card.id);
+            const isHighlighted = highlightCardIds.has(card.id);
+            // 割り込み（ポン・チー）時、候補でないカードを暗くトーンダウン
+            const isDimmed = isInterruptTurn && isMyInterrupt && !isHighlighted && !isSelected;
 
-            return renderCardsList.map((card) => {
-              const isJustDrawn = card.id === justDrawnCardId;
-              const isSelected = selectedHand.includes(card.id);
-              const isHighlighted = highlightCardIds.has(card.id);
-
-              return (
-                <div 
-                  key={card.id} 
-                  className={`shrink-0 ${isJustDrawn ? "ml-2 sm:ml-3.5" : "mx-[1.5px] sm:mx-0.5"}`}
-                >
-                  <CardComponent
-                    card={card}
-                    isSelected={isSelected}
-                    onClick={() => onCardClick(card)}
-                    sizeClass="w-[38px] h-[54px] xs:w-10 xs:h-14 sm:w-12 sm:h-17"
-                    isHighlighted={isHighlighted}
-                    extraClass={isJustDrawn ? "ring-2 ring-amber-400 shadow-lg" : ""}
-                  />
-                </div>
-              );
-            });
-          })()}
+            return (
+              <div 
+                key={card.id} 
+                className={`shrink-0 ${isJustDrawn ? "ml-2 sm:ml-3.5" : "mx-[1.5px] sm:mx-0.5"}`}
+              >
+                <CardComponent
+                  card={card}
+                  isSelected={isSelected}
+                  isHighlighted={isHighlighted && !isSelected}
+                  isDimmed={isDimmed}
+                  onClick={() => onCardClick(card)}
+                  sizeClass="w-[38px] h-[54px] xs:w-10 xs:h-14 sm:w-12 sm:h-17"
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
     </footer>

@@ -11,6 +11,7 @@ interface CardProps {
   interpretedSuit?: 'red' | 'blue' | null;
   sizeClass?: string;
   isHighlighted?: boolean;
+  isDimmed?: boolean;
   isHidden?: boolean;
   extraClass?: string;
 }
@@ -23,6 +24,7 @@ export const Card: React.FC<CardProps> = ({
   interpretedSuit = null,
   sizeClass = "w-11 h-15 sm:w-13 sm:h-18",
   isHighlighted = false,
+  isDimmed = false,
   isHidden = false,
   extraClass = ""
 }) => {
@@ -50,14 +52,15 @@ export const Card: React.FC<CardProps> = ({
   return (
     <div 
       onClick={onClick}
-      className={`relative ${sizeClass} rounded-md sm:rounded-lg border-2 flex flex-col items-center justify-center cursor-pointer select-none
+      className={`relative ${sizeClass} rounded-md sm:rounded-lg border-2 flex flex-col items-center justify-center select-none
         transition-transform duration-100 ease-out
         ${suitObj.color}
         ${isSelected 
-          ? 'ring-2 ring-slate-800 -translate-y-2.5 shadow-[0_8px_16px_rgba(0,0,0,0.18),0_2px_4px_rgba(0,0,0,0.1)] z-20' 
-          : 'shadow-[0_2px_4px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.06)]'
+          ? '-translate-y-3 shadow-[0_8px_16px_rgba(0,0,0,0.25)] z-20 cursor-pointer' 
+          : isDimmed
+            ? 'opacity-35 cursor-default'
+            : 'shadow-[0_2px_4px_rgba(0,0,0,0.1)] cursor-pointer'
         }
-        ${isHighlighted ? 'ring-2 ring-amber-400 animate-bounce shadow-md' : ''}
         ${extraClass}`}
     >
       <div className="flex flex-col items-center pointer-events-none">

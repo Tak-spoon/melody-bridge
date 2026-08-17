@@ -318,7 +318,9 @@ export default function App() {
       const seq = type === 'pon' ? getChordInterpretation(testCards) : getScaleInterpretation(testCards);
       if (!seq) return prev;
       
-      playMelody(seq.map(c => c.interpretedAbsVal ?? c.absVal));
+      setTimeout(() => {
+        playMelody(seq.map(c => c.interpretedAbsVal ?? c.absVal));
+      }, 200);
       p.hasMelded = true;
       s.players[playerId] = p;
       
@@ -411,29 +413,76 @@ export default function App() {
     }
   }
 
-  // 割り込み（ポン・チー）判定とハイライト
+  // 割り込み（ポン・チー）判定とスマート選択ロジック
   const highlightCardIds = new Set<string>();
-  const validCombsList: string[][] = [];
-  let canPon = false, canChii = false;
+  const allValidCombs: { type: 'pon' | 'chii'; cardIds: string[] }[] = [];
 
   if (isMyInterrupt && gameState.interruptInfo) {
-    const myActions = gameState.interruptInfo.candidates[0].actions;
-    canPon = myActions.some(a => a.type === 'pon');
-    canChii = myActions.some(a => a.type === 'chii');
-
     const discardedCard = gameState.interruptInfo.discardedCard;
     const myHand = gameState.players[0].hand;
+
+    // ポン候補（誰の捨て札からでも可）
     const ponCombs = getValidPonCombs(myHand, discardedCard);
     ponCombs.forEach(comb => {
-      validCombsList.push(comb);
+      allValidCombs.push({ type: 'pon', cardIds: comb });
       comb.forEach(id => highlightCardIds.add(id));
     });
+
+    // チー候補（直前のプレイヤーの捨て札からのみ可）
     if (gameState.interruptInfo.discarderId === 3) {
       const chiiCombs = getValidChiiCombs(myHand, discardedCard);
       chiiCombs.forEach(comb => {
-        validCombsList.push(comb);
+        allValidCombs.push({ type: 'chii', cardIds: comb });
         comb.forEach(id => highlightCardIds.add(id));
       });
+    }
+  }
+
+  // 割り込み発生時に、有効な手札がまだ選ばれていなければ最初の候補を自動選択
+  useEffect(() => {
+    if (isMyInterrupt && allValidCombs.length > 0) {
+      const isAlreadySelectedValid = allValidCombs.some(
+        c => c.cardIds.length === selectedHand.length && c.cardIds.every(id => selectedHand.includes(id))
+      );
+      if (!isAlreadySelectedValid) {
+        setSelectedHand(allValidCombs[0].cardIds);
+      }
+    }
+  }, [isMyInterrupt, gameState.interruptInfo?.discardedCard.id]);
+
+  // 現在選択中の手札（selectedHand）でポン・チーが可能かどうかを判定（ボタン連動）
+  let canPon = false;
+  let canChii = false;
+  let formedMeldName: string | null = null;
+  let formedMeldType: 'chord' | 'scale' | 'add' | null = null;
+
+  if (isInterruptTurn && isMyInterrupt && gameState.interruptInfo && selectedHand.length === 2) {
+    const discardedCard = gameState.interruptInfo.discardedCard;
+    const currentSelectedCards = playerHandCards.filter(c => selectedHand.includes(c.id));
+    const testCards = [discardedCard, ...currentSelectedCards];
+    const chordSeq = getChordInterpretation(testCards);
+    const scaleSeq = (gameState.interruptInfo.discarderId === 3) ? getScaleInterpretation(testCards) : null;
+    canPon = chordSeq !== null;
+    canChii = scaleSeq !== null;
+
+    if (chordSeq) {
+      formedMeldName = getChordSymbol(chordSeq);
+      formedMeldType = 'chord';
+    } else if (scaleSeq) {
+      formedMeldName = 'スケール';
+      formedMeldType = 'scale';
+    }
+  } else if (isPlayerTurn && isMainPhase) {
+    if (isValidChordSelection) {
+      const chordSeq = getChordInterpretation(selectedObjs);
+      formedMeldName = chordSeq ? getChordSymbol(chordSeq) : 'コード';
+      formedMeldType = 'chord';
+    } else if (isValidScaleSelection) {
+      formedMeldName = 'スケール';
+      formedMeldType = 'scale';
+    } else if (isValidAddSelection && selectedMeld) {
+      formedMeldName = '付け札';
+      formedMeldType = 'add';
     }
   }
 
@@ -441,9 +490,21 @@ export default function App() {
     initAudio();
     if (isInterruptTurn && isMyInterrupt) {
       if (highlightCardIds.has(card.id)) {
-        const matchedComb = validCombsList.find(comb => comb.includes(card.id));
-        if (matchedComb) {
-          setSelectedHand(matchedComb);
+        // タップされたカードを含む有効な組み合わせ一覧
+        const matchingCombs = allValidCombs.filter(c => c.cardIds.includes(card.id));
+        if (matchingCombs.length > 0) {
+          // すでに現在選ばれているペアと一致する候補のインデックスを探す
+          const currentIdx = matchingCombs.findIndex(
+            c => c.cardIds.length === selectedHand.length && c.cardIds.every(id => selectedHand.includes(id))
+          );
+          if (currentIdx !== -1) {
+            // 同じカードを再度タップした時は、そのカードを含む「次の組み合わせ」へ切り替え（ローテーション）
+            const nextIdx = (currentIdx + 1) % matchingCombs.length;
+            setSelectedHand(matchingCombs[nextIdx].cardIds);
+          } else {
+            // 別のカードをタップした時は、そのカードを含む組み合わせの2枚へ瞬時に選択枠が移動！
+            setSelectedHand(matchingCombs[0].cardIds);
+          }
         }
       }
       return;
@@ -606,7 +667,7 @@ export default function App() {
     }
 
     if (gameState.phase === 'interrupt') {
-      if (isMyInterrupt) return 'ポン・チーが可能です。カードを選択してください。';
+      if (isMyInterrupt) return 'ポン・チーが可能です。手札の光るカードを選んでください。';
       return '他プレイヤーの割り込みを確認中...';
     }
 
@@ -666,10 +727,12 @@ export default function App() {
 
       {/* プレイヤー手札 ＆ アクション操作フッター */}
       <Hand
-        hand={gameState.players[0].hand}
+        hand={playerHandCards}
         selectedHand={selectedHand}
         justDrawnCardId={gameState.players[0].justDrawnCardId}
         highlightCardIds={highlightCardIds}
+        formedMeldName={formedMeldName}
+        formedMeldType={formedMeldType}
         isPlayerTurn={isPlayerTurn}
         isMainPhase={isMainPhase}
         isInterruptTurn={isInterruptTurn}

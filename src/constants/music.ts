@@ -13,12 +13,12 @@ export const SUITS: SuitConfig[] = [
   { 
     id: 'red', 
     name: '赤', 
-    color: 'border-rose-300 text-rose-700 bg-gradient-to-b from-white via-white to-rose-50/60 ring-rose-400' 
+    color: 'border-rose-300 text-rose-700 bg-gradient-to-b from-white via-white to-rose-50/60' 
   },
   { 
     id: 'blue', 
     name: '青', 
-    color: 'border-blue-300 text-blue-700 bg-gradient-to-b from-white via-white to-blue-50/60 ring-blue-400' 
+    color: 'border-blue-300 text-blue-700 bg-gradient-to-b from-white via-white to-blue-50/60' 
   }
 ];
 
