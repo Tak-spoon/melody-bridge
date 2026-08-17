@@ -19,6 +19,63 @@ export const getAudioContext = (): AudioContext | null => {
 };
 
 /**
+ * 1音のアコースティックピアノサウンド（澄み切ったクリアで温かみのあるピアノ音）を生成・再生します。
+ * 音割れ（クリッピング）を完全防止し、純粋なピアノの音芯と自然な余韻を再現します。
+ */
+export const playPianoNote = (
+  ctx: AudioContext,
+  freq: number,
+  startTime: number,
+  duration = 1.4,
+  volume = 0.22
+): void => {
+  try {
+    const masterGain = ctx.createGain();
+    
+    // 温かみのあるアコースティックフィルター（耳障りな高域ノイズをカット）
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(2200, startTime);
+    filter.frequency.exponentialRampToValueAtTime(700, startTime + duration);
+
+    // [周波数倍率, 波形タイプ, 相対ゲイン]
+    // ゲイン合計を安全にコントロールし、音割れ（クリッピング歪み）を完全防止
+    const toneComponents: [number, OscillatorType, number][] = [
+      [1, 'sine', 0.65],       // 純粋なピアノの音芯
+      [1, 'triangle', 0.25],   // 胴鳴りの温かみ
+      [2, 'sine', 0.10],       // 1オクターブ上の倍音（自然な明るさ）
+    ];
+
+    toneComponents.forEach(([mult, type, gainRatio]) => {
+      const oscFreq = freq * mult;
+      if (oscFreq > 16000) return;
+
+      const osc = ctx.createOscillator();
+      const compGain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(oscFreq, startTime);
+
+      compGain.gain.setValueAtTime(gainRatio, startTime);
+      osc.connect(compGain);
+      compGain.connect(filter);
+
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    });
+
+    // 自然なピアノ打鍵エンベロープ（0.008秒の滑らかなアタック → 指数減衰）
+    masterGain.gain.setValueAtTime(0.0001, startTime);
+    masterGain.gain.exponentialRampToValueAtTime(volume, startTime + 0.008);
+    masterGain.gain.exponentialRampToValueAtTime(0.00001, startTime + duration);
+
+    filter.connect(masterGain);
+    masterGain.connect(ctx.destination);
+  } catch {
+    // フォールバック
+  }
+};
+
+/**
  * ポン・チーのカットイン発生時の決定効果音（SE）
  */
 export const playCutInSound = (type: 'pon' | 'chii', customCtx?: AudioContext | null): void => {
@@ -35,12 +92,12 @@ export const playCutInSound = (type: 'pon' | 'chii', customCtx?: AudioContext | 
     const gainNode = ctx.createGain();
 
     if (type === 'pon') {
-      // ポン：キレのあるインパクト音（周波数が急激に変化するスナップアタック）
+      // ポン：キレのあるインパクト音
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(440, now);
       osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
 
-      gainNode.gain.setValueAtTime(0.4, now);
+      gainNode.gain.setValueAtTime(0.3, now);
       gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
 
       osc.connect(gainNode);
@@ -53,7 +110,7 @@ export const playCutInSound = (type: 'pon' | 'chii', customCtx?: AudioContext | 
       osc.frequency.setValueAtTime(330, now);
       osc.frequency.exponentialRampToValueAtTime(660, now + 0.1);
 
-      gainNode.gain.setValueAtTime(0.35, now);
+      gainNode.gain.setValueAtTime(0.25, now);
       gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
 
       osc.connect(gainNode);
@@ -67,7 +124,7 @@ export const playCutInSound = (type: 'pon' | 'chii', customCtx?: AudioContext | 
 };
 
 /**
- * アガリ（和了）発生時のファンファーレ効果音
+ * アガリ（和了）発生時のピアノファンファーレアルペジオ
  */
 export const playWinSound = (customCtx?: AudioContext | null): void => {
   const ctx = customCtx || getAudioContext();
@@ -79,34 +136,16 @@ export const playWinSound = (customCtx?: AudioContext | null): void => {
 
   // ド4(7), ミ4(9), ソ4(11), ド5(14)
   const notes = [7, 9, 11, 14];
+  const now = ctx.currentTime;
   notes.forEach((noteIdx, i) => {
-    try {
-      const now = ctx.currentTime;
-      const startTime = now + i * 0.1;
-      const duration = 0.6;
-
-      const osc = ctx.createOscillator();
-      const gainNode = ctx.createGain();
-
-      osc.type = 'triangle';
-      osc.frequency.value = FREQUENCIES[noteIdx];
-
-      osc.connect(gainNode);
-      gainNode.connect(ctx.destination);
-
-      osc.start(startTime);
-      gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(0.35, startTime + 0.04);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-      osc.stop(startTime + duration);
-    } catch {
-      // フォールバック
-    }
+    const freq = FREQUENCIES[noteIdx];
+    const startTime = now + i * 0.1;
+    playPianoNote(ctx, freq, startTime, 1.5, 0.25);
   });
 };
 
 /**
- * 音程配列（absVal: 0〜20）をアルペジオ（分散和音/メロディ）として順番に合成・再生します。
+ * 音程配列（absVal: 0〜20）を澄んだアコースティックピアノのアルペジオ（分散和音）として順番に合成・再生します。
  */
 export const playMelody = (absVals: number[], customCtx?: AudioContext | null): void => {
   const ctx = customCtx || getAudioContext();
@@ -116,32 +155,11 @@ export const playMelody = (absVals: number[], customCtx?: AudioContext | null): 
     ctx.resume();
   }
 
+  const now = ctx.currentTime;
   absVals.forEach((absVal, i) => {
     if (absVal < 0 || absVal >= FREQUENCIES.length) return;
-    
-    try {
-      const osc = ctx.createOscillator();
-      const gainNode = ctx.createGain();
-
-      // トライアングル波（柔らかいシンセ音）
-      osc.type = 'triangle';
-      osc.frequency.value = FREQUENCIES[absVal];
-
-      osc.connect(gainNode);
-      gainNode.connect(ctx.destination);
-
-      const now = ctx.currentTime;
-      const startTime = now + i * 0.15;
-      const duration = 0.5;
-
-      osc.start(startTime);
-      // エンベロープ設定（音の立ち上がりと減衰）
-      gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-      osc.stop(startTime + duration);
-    } catch {
-      // オーディオ再生エラーのフォールバック（無視）
-    }
+    const freq = FREQUENCIES[absVal];
+    const startTime = now + i * 0.14; // 心地よい打鍵間隔
+    playPianoNote(ctx, freq, startTime, 1.4, 0.22);
   });
 };
