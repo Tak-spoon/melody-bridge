@@ -42,6 +42,10 @@ export const Field: React.FC<FieldProps> = ({
           {chordMelds.map((meld) => {
             const chordSymbol = getChordSymbol(meld.cards);
             const isCompleted = meld.cards.length === 4;
+            const chordSuit = meld.cards[0]?.suit || 'red';
+            const symbolColorClass = chordSuit === 'blue' 
+              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' 
+              : 'bg-gradient-to-r from-rose-500 to-rose-600 text-white';
             const isSelected = selectedMeldId === meld.id;
             const ownerName = players[meld.ownerId]?.name || '誰か';
 
@@ -61,7 +65,7 @@ export const Field: React.FC<FieldProps> = ({
               >
                 <div className="text-[10px] font-bold mb-1 flex justify-between gap-2 items-center">
                   <span className={`px-1.5 py-0.2 rounded font-black shadow-xs ${
-                    isCompleted ? 'bg-slate-700 text-white' : 'bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black'
+                    isCompleted ? 'bg-slate-700 text-white' : symbolColorClass
                   }`}>
                     {chordSymbol}
                   </span>
@@ -105,6 +109,10 @@ export const Field: React.FC<FieldProps> = ({
       {scaleMelds.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {scaleMelds.map((meld) => {
+            const scaleSuit = meld.cards[0]?.suit || 'red';
+            const scaleColorClass = scaleSuit === 'blue' 
+              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' 
+              : 'bg-gradient-to-r from-rose-500 to-rose-600 text-white';
             const isSelected = selectedMeldId === meld.id;
             const ownerName = players[meld.ownerId]?.name || '誰か';
 
@@ -121,7 +129,7 @@ export const Field: React.FC<FieldProps> = ({
                 }`}
               >
                 <div className="text-[10px] font-bold mb-1 flex justify-between gap-2 items-center">
-                  <span className="px-1.5 py-0.2 rounded font-black text-[9px] shadow-xs bg-gradient-to-r from-teal-500 to-emerald-600 text-white">
+                  <span className={`px-1.5 py-0.2 rounded font-black text-[9px] shadow-xs ${scaleColorClass}`}>
                     スケール
                   </span>
                   <span className="text-emerald-300/70 text-[9px] font-medium">{ownerName}</span>

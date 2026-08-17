@@ -54,19 +54,23 @@ const RULES_DATA: RuleSection[] = [
   {
     title: "3. ラウンドと勝敗（失点計算）",
     content: (
-      <div className="space-y-2.5 text-xs text-amber-100/90 leading-relaxed select-none">
+      <div className="space-y-2 text-xs text-amber-100/90 leading-relaxed select-none">
         <p><strong className="text-amber-300">【ラウンドの終了条件】</strong></p>
         <ul className="list-disc pl-4 space-y-1 text-[11px]">
           <li>誰かの手札が0枚になった時（アガリ）</li>
-          <li><strong className="text-amber-300">0枚になった山札を引こうとした時（流局）</strong></li>
+          <li><strong className="text-amber-300">山札が0枚の時の捨て札に対して誰もポン・チーしなかった時（流局）</strong></li>
         </ul>
+
+        <div className="bg-[#26180f] p-2 rounded-lg border border-amber-900/60 text-[10.5px] text-amber-200/80 shadow-inner">
+          ※山札が0枚になっても、捨て札を拾って手札（失点）を減らす連鎖チャンスが続きます。誰も拾えなくなった瞬間にラウンド終了となります。
+        </div>
         
-        <div className="mt-1">
+        <div>
           <p><strong className="text-amber-300">【ポイント計算】</strong></p>
           <p className="mt-0.5 text-[11px]">ラウンド終了時、手札に残っている枚数がそのまま「ペナルティ失点」として加算されます（アガった人は0点）。</p>
         </div>
 
-        <div className="bg-[#26180f] p-2.5 rounded-lg border border-amber-600/50 shadow-inner text-center mt-1">
+        <div className="bg-[#26180f] p-2 rounded-lg border border-amber-600/50 shadow-inner text-center">
           <p className="font-black text-amber-300 text-xs">
             全4ラウンド終了時、合計失点が<br/>一番少ない人の総合優勝！
           </p>

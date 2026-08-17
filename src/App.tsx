@@ -288,6 +288,11 @@ export default function App() {
         s.interruptInfo = { discarderId: s.turn, discardedCard, candidates };
         s.message = `割り込み確認中`;
       } else {
+        // 山札が0枚の時の捨て札に対して誰もポン・チーできない場合は即座に流局
+        if (s.deck.length === 0) {
+          triggerWinSequence(null, '山札切れにより流局');
+          return s;
+        }
         s.turn = (s.turn + 1) % 4;
         s.phase = 'draw';
         s.message = `${s.players[s.turn].name} のターン`;
@@ -297,7 +302,7 @@ export default function App() {
     });
     setSelectedHand([]);
     setSelectedMeld(null);
-  }, []);
+  }, [triggerWinSequence]);
 
   const doPassInterrupt = useCallback(() => {
     setGameState(prev => {
@@ -310,6 +315,12 @@ export default function App() {
       if (s.interruptInfo.candidates.length > 0) {
         return s;
       } else {
+        // 全員パスで割り込み不成立時、山札が0枚なら即座に流局
+        if (s.deck.length === 0) {
+          triggerWinSequence(null, '山札切れにより流局');
+          s.interruptInfo = null;
+          return s;
+        }
         s.phase = 'draw';
         s.turn = ((s.interruptInfo.discarderId as number) + 1) % 4;
         s.message = `${s.players[s.turn].name} のターン`;
@@ -319,7 +330,7 @@ export default function App() {
       }
     });
     setSelectedHand([]);
-  }, []);
+  }, [triggerWinSequence]);
 
   const doInterruptAction = useCallback((playerId: number, type: 'pon' | 'chii', handCardIds: string[]) => {
     initAudio();
@@ -521,12 +532,22 @@ export default function App() {
       const chordSeq = getChordInterpretation(selectedObjs);
       formedMeldName = chordSeq ? getChordSymbol(chordSeq) : 'コード';
       formedMeldType = 'chord';
-    } else if (isValidScaleSelection) {
-      formedMeldName = 'スケール';
-      formedMeldType = 'scale';
     } else if (isValidAddSelection && selectedMeld) {
-      formedMeldName = '付け札';
-      formedMeldType = 'add';
+      const meldObj = gameState.field.find(m => m.id === selectedMeld);
+      if (meldObj && meldObj.type === 'chord' && selectedObjs.length === 1) {
+        const newSeq = tryAddCardToMeld(selectedObjs[0], meldObj);
+        if (newSeq) {
+          const newChordSymbol = getChordSymbol(newSeq);
+          formedMeldName = `付け札 → ${newChordSymbol}`;
+          formedMeldType = 'add';
+        } else {
+          formedMeldName = '付け札';
+          formedMeldType = 'add';
+        }
+      } else {
+        formedMeldName = '付け札';
+        formedMeldType = 'add';
+      }
     }
   }
 
