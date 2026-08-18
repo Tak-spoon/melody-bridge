@@ -1459,18 +1459,6 @@ export const PuzzlePlay: React.FC<PuzzlePlayProps> = ({
               </button>
 
               <button
-                onClick={() => {
-                  setIsFailed(false);
-                  setUnlockedStepCount(1);
-                  setShowHintModal(true);
-                }}
-                className="w-full py-2 bg-[#2a170d] hover:bg-[#381f12] text-amber-300 font-bold text-xs rounded-xl border border-amber-600/50 transition active:scale-95 flex items-center justify-center gap-1.5"
-              >
-                <Lightbulb className="w-4 h-4 text-amber-400" />
-                <span>ヒントを見る</span>
-              </button>
-
-              <button
                 onClick={onBackToSelect}
                 className="w-full py-1 text-amber-400/70 hover:text-amber-200 text-xs font-bold transition"
               >
