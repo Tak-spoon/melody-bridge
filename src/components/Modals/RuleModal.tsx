@@ -19,11 +19,7 @@ const RULES_DATA: RuleSection[] = [
         <p><strong className="text-amber-300">【カードの構成】</strong></p>
         <div className="bg-[#26180f] p-2.5 rounded-lg border border-amber-900/60 shadow-inner">
           1オクターブはピアノの白鍵（ドレミファソラシ）の7音のみで構成されています。<br/>
-          「7音 × C3〜B5の3オクターブ × 赤青2色」＝ <strong className="text-amber-300 font-black">計42枚</strong> を使用します。
-        </div>
-
-        <div className="bg-[#26180f] p-2.5 rounded-lg border border-amber-900/60 text-[11px] text-amber-200/80 shadow-inner">
-          ※カードの「赤」と「青」はトランプのマーク（スート）です。役を作るときは必ず同じ色同士で揃えます（赤のみ、または青のみ）。
+          「7音 × C2〜B5の4オクターブ × 各音2枚」＝ <strong className="text-amber-300 font-black">計56枚</strong> を使用します。
         </div>
       </div>
     )
@@ -32,7 +28,7 @@ const RULES_DATA: RuleSection[] = [
     title: "2. セット（役）の作り方",
     content: (
       <div className="space-y-2.5 text-xs text-amber-100/90 leading-relaxed select-none">
-        <p>場に出せる役（セット）には2種類あります。<strong className="text-amber-300">必ず同じ色（赤カード同士、または青カード同士）で揃えます。</strong></p>
+        <p>場に出せる役（セット）には2種類あります。</p>
         
         {/* コード */}
         <div className="bg-[#26180f] p-2.5 rounded-lg border border-amber-900/60 shadow-inner">

@@ -42,10 +42,7 @@ export const Field: React.FC<FieldProps> = ({
           {chordMelds.map((meld) => {
             const chordSymbol = getChordSymbol(meld.cards);
             const isCompleted = meld.cards.length === 4;
-            const chordSuit = meld.cards[0]?.suit || 'red';
-            const symbolColorClass = chordSuit === 'blue' 
-              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' 
-              : 'bg-gradient-to-r from-rose-500 to-rose-600 text-white';
+            const symbolColorClass = 'bg-gradient-to-r from-amber-500 to-amber-600 text-white';
             const isSelected = selectedMeldId === meld.id;
             const ownerName = players[meld.ownerId]?.name || '誰か';
 
@@ -87,7 +84,6 @@ export const Field: React.FC<FieldProps> = ({
                           card={c} 
                           isSelected={false} 
                           interpretedAbsVal={c.interpretedAbsVal} 
-                          interpretedSuit={c.suit} 
                           sizeClass="w-8 h-11 sm:w-9 sm:h-12" 
                         />
                       </div>
@@ -109,10 +105,7 @@ export const Field: React.FC<FieldProps> = ({
       {scaleMelds.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {scaleMelds.map((meld) => {
-            const scaleSuit = meld.cards[0]?.suit || 'red';
-            const scaleColorClass = scaleSuit === 'blue' 
-              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' 
-              : 'bg-gradient-to-r from-rose-500 to-rose-600 text-white';
+            const scaleColorClass = 'bg-gradient-to-r from-teal-500 to-teal-600 text-white';
             const isSelected = selectedMeldId === meld.id;
             const ownerName = players[meld.ownerId]?.name || '誰か';
 
@@ -150,7 +143,6 @@ export const Field: React.FC<FieldProps> = ({
                           card={c} 
                           isSelected={false} 
                           interpretedAbsVal={c.interpretedAbsVal} 
-                          interpretedSuit={c.suit} 
                           sizeClass="w-8 h-11 sm:w-9 sm:h-12" 
                         />
                       </div>

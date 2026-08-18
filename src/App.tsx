@@ -5,6 +5,7 @@ import { NOTE_NAMES, NOTE_JP } from './constants/music';
 import { getChordSymbol, getChordInterpretation, getScaleInterpretation, tryAddCardToMeld } from './utils/musicTheory';
 import { setupRound, sortHand, getCombinations, getValidPonCombs, getValidChiiCombs, checkInterrupts, addLog, finishRound, checkWinCondition } from './utils/gameLogic';
 import { playMelody, playCutInSound, playWinSound, playCardTone, getAudioContext } from './utils/audio';
+import { GameStats, loadStats, recordGameRound, recordInterrupt } from './utils/stats';
 
 import { Header } from './components/Header';
 import { PlayerStatus } from './components/PlayerStatus';
@@ -15,10 +16,11 @@ import { Card as CardComponent } from './components/Card';
 import { CutIn } from './components/CutIn';
 import { WinEffect } from './components/WinEffect';
 import { RuleModal } from './components/Modals/RuleModal';
-import { OptionModal } from './components/Modals/OptionModal';
+import { OptionModal, BotSpeed, BotCountOption } from './components/Modals/OptionModal';
 import { DiscardModal } from './components/Modals/DiscardModal';
 import { LogModal } from './components/Modals/LogModal';
 import { GameOverModal } from './components/Modals/GameOverModal';
+import { StatsModal } from './components/Modals/StatsModal';
 
 export default function App() {
   const [gameState, setGameState] = useState<GameState>(() => setupRound());
@@ -30,6 +32,47 @@ export default function App() {
   const [showOptionModal, setShowOptionModal] = useState(false);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
+  const [showStatsModal, setShowStatsModal] = useState(false);
+
+  // 統計データ管理（localStorage永続化）
+  const [stats, setStats] = useState<GameStats>(() => loadStats());
+
+  // Bot自動対戦モード（localStorage永続化）
+  const [botMode, setBotMode] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('mb_bot_mode');
+      return saved !== null ? JSON.parse(saved) : false;
+    } catch { return false; }
+  });
+  const [botSpeed, setBotSpeed] = useState<BotSpeed>('normal');
+  const [botTargetCount, setBotTargetCount] = useState<BotCountOption>('unlimited');
+  const [botRemainingCount, setBotRemainingCount] = useState<number | 'unlimited'>('unlimited');
+
+  const toggleBotMode = () => {
+    setBotMode(prev => {
+      const next = !prev;
+      try { localStorage.setItem('mb_bot_mode', JSON.stringify(next)); } catch {}
+      if (next) {
+        setBotRemainingCount(botTargetCount);
+      }
+      return next;
+    });
+  };
+
+  const changeBotTargetCount = (count: BotCountOption) => {
+    setBotTargetCount(count);
+    if (botMode) {
+      setBotRemainingCount(count);
+    }
+  };
+
+  const cycleBotSpeed = () => {
+    setBotSpeed(prev => {
+      if (prev === 'normal') return 'fast';
+      if (prev === 'fast') return 'ultra';
+      return 'normal';
+    });
+  };
 
   // サウンド・オプション設定（localStorageで永続化）
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
@@ -75,8 +118,15 @@ export default function App() {
     getAudioContext();
   };
 
+  // ラウンド終了処理の多重実行防止フラグ
+  const isRoundEndingRef = useRef(false);
+  const hasRecordedStatsRef = useRef(false);
+
   // アガリ・流局演出の起動
   const triggerWinSequence = useCallback((winnerId: number | null, reasonMsg: string) => {
+    if (isRoundEndingRef.current) return;
+    isRoundEndingRef.current = true;
+
     initAudio();
     if (winnerId !== null) {
       setGameState(curr => {
@@ -87,17 +137,40 @@ export default function App() {
       });
     }
 
+    const waitDuration = botSpeed === 'ultra' ? 100 : 1200;
     setTimeout(() => {
       setWinEffectName(null);
+
       setGameState(prev => {
         if (prev.roundOver) return prev;
         const s = { ...prev, logs: [...prev.logs], scores: [...prev.scores] };
         s.winner = winnerId;
         finishRound(s, reasonMsg);
+
+        // 1ラウンドにつき確実に1度だけ統計記録（StrictModeの二重実行を完全防止）
+        if (!hasRecordedStatsRef.current) {
+          hasRecordedStatsRef.current = true;
+          setStats(currStats => recordGameRound(s, currStats));
+        }
+
         return s;
       });
-    }, 1200);
-  }, []);
+
+      // Bot指定回数のデクリメント
+      setBotRemainingCount(curr => {
+        if (typeof curr === 'number') {
+          const next = curr - 1;
+          if (next <= 0) {
+            setBotMode(false);
+            try { localStorage.setItem('mb_bot_mode', JSON.stringify(false)); } catch {}
+            return 0;
+          }
+          return next;
+        }
+        return curr;
+      });
+    }, waitDuration);
+  }, [botSpeed]);
 
   const isPlayerTurn = gameState.turn === 0;
   const isMainPhase = gameState.phase === 'main';
@@ -165,13 +238,14 @@ export default function App() {
       p.hand = sortHand(p.hand.filter(c => !cardIds.includes(c.id)));
       p.hasMelded = true;
       p.justDrawnCardId = null;
+      p.actions = { ...p.actions, melds: (p.actions?.melds || 0) + 1 };
       s.players[s.turn] = p;
       
       const symbol = type === 'chord' ? getChordSymbol(interpretedSeq) : 'スケール';
       const cardsStr = interpretedSeq.map(c => {
         const val = c.interpretedAbsVal ?? c.absVal;
         const idx = val % 7;
-        const o = Math.floor(val / 7) + 3;
+        const o = Math.floor(val / 7) + 2;
         return `${NOTE_NAMES[idx]}${o}(${NOTE_JP[idx]})`;
       }).join(', ');
 
@@ -215,13 +289,14 @@ export default function App() {
       const cardObj = p.hand.find(c => c.id === cardId);
       if (!cardObj) return prev;
       const noteIndex = cardObj.absVal % 7;
-      const oct = Math.floor(cardObj.absVal / 7) + 3;
+      const oct = Math.floor(cardObj.absVal / 7) + 2;
       const cardStr = `${NOTE_NAMES[noteIndex]}${oct}(${NOTE_JP[noteIndex]})`;
       const targetName = meld.type === 'chord' ? getChordSymbol(meld.cards) : 'スケール';
       const ownerName = s.players[meld.ownerId]?.name || '誰か';
 
       p.hand = sortHand(p.hand.filter(c => c.id !== cardId));
       p.justDrawnCardId = null;
+      p.actions = { ...p.actions, adds: (p.actions?.adds || 0) + 1 };
       s.players[s.turn] = p;
       meld.cards = newSeq; 
       s.field[meldIndex] = meld;
@@ -374,6 +449,11 @@ export default function App() {
         playMelody(seq.map(c => c.interpretedAbsVal ?? c.absVal));
       }, 200);
       p.hasMelded = true;
+      p.actions = {
+        ...p.actions,
+        pon: type === 'pon' ? (p.actions?.pon || 0) + 1 : (p.actions?.pon || 0),
+        chii: type === 'chii' ? (p.actions?.chii || 0) + 1 : (p.actions?.chii || 0),
+      };
       s.players[playerId] = p;
       
       const symbol = type === 'pon' ? getChordSymbol(seq) : 'スケール';
@@ -381,7 +461,7 @@ export default function App() {
       const cardsStr = seq.map(c => {
         const val = c.interpretedAbsVal ?? c.absVal;
         const idx = val % 7;
-        const o = Math.floor(val / 7) + 3;
+        const o = Math.floor(val / 7) + 2;
         return `${NOTE_NAMES[idx]}${o}(${NOTE_JP[idx]})`;
       }).join(', ');
 
@@ -397,6 +477,9 @@ export default function App() {
       s.interruptInfo = null;
       s.message = `${p.name} が ${discarderName} の捨て札で ${actionName}`;
       addLog(s, p.name, `${discarderName}の捨て札で ${actionName}！ [${cardsStr}] で ${symbol} を公開`);
+      
+      // 統計データの割り込みカウントを更新
+      setStats(curr => recordInterrupt(type, curr));
       
       const winner = s.players.find(pl => pl.hand.length === 0);
       if (winner) {
@@ -593,22 +676,28 @@ export default function App() {
   };
 
   // -------------------------------------------------------------
-  // CPU 思考ルーチン（スタック・無限ループ防止 ＆ 自然な思考テンポ）
+  // CPU / Bot 思考ルーチン（スタック・無限ループ防止 ＆ 速度連動）
   // -------------------------------------------------------------
   useEffect(() => {
     if (gameState.winner !== null || gameState.roundOver) return;
 
     let isSubscribed = true;
 
-    // プレイヤーが目で追える自然な思考時間（フェーズごとに最適化）
+    // 速度設定に応じたディレイ（通常 / 高速 / 超高速）
     let delay = 900;
-    if (gameState.phase === 'draw') {
-      delay = 850; // ドロー前の間
-    } else if (gameState.phase === 'main') {
-      // 役出しや付け札の直後はアニメーションと余韻を味わうため1100ms
-      delay = 1000;
-    } else if (gameState.phase === 'interrupt') {
-      delay = 850; // 割り込み判定の間
+    if (botSpeed === 'ultra') {
+      delay = 30; // 超高速
+    } else if (botSpeed === 'fast') {
+      delay = 180; // 高速
+    } else {
+      // 通常速度
+      if (gameState.phase === 'draw') {
+        delay = 850;
+      } else if (gameState.phase === 'main') {
+        delay = 1000;
+      } else if (gameState.phase === 'interrupt') {
+        delay = 850;
+      }
     }
 
     const timer = setTimeout(() => {
@@ -623,14 +712,27 @@ export default function App() {
 
         // プレイヤー（あなた）の割り込み確認
         if (candidate.playerId === 0) {
-          const discardedCard = gameState.interruptInfo.discardedCard;
-          const myHand = gameState.players[0].hand;
-          const hasPon = getValidPonCombs(myHand, discardedCard).length > 0;
-          const hasChii = (gameState.interruptInfo.discarderId === 3) && (getValidChiiCombs(myHand, discardedCard).length > 0);
+          if (botMode) {
+            // BotモードONの場合、自動でポンまたはチーを実行
+            const ponAction = candidate.actions.find(a => a.type === 'pon');
+            const chiiAction = candidate.actions.find(a => a.type === 'chii');
+            if (ponAction) {
+              doInterruptAction(0, 'pon', ponAction.validCombs[0]);
+            } else if (chiiAction) {
+              doInterruptAction(0, 'chii', chiiAction.validCombs[0]);
+            } else {
+              doPassInterrupt();
+            }
+          } else {
+            // 手動モードの場合、権利がなければ自動パス
+            const discardedCard = gameState.interruptInfo.discardedCard;
+            const myHand = gameState.players[0].hand;
+            const hasPon = getValidPonCombs(myHand, discardedCard).length > 0;
+            const hasChii = (gameState.interruptInfo.discarderId === 3) && (getValidChiiCombs(myHand, discardedCard).length > 0);
 
-          // プレイヤーに権利がなければ自動パス
-          if (!hasPon && !hasChii) {
-            doPassInterrupt();
+            if (!hasPon && !hasChii) {
+              doPassInterrupt();
+            }
           }
           return;
         }
@@ -650,9 +752,10 @@ export default function App() {
         return;
       }
 
-      // 通常手番の処理
+      // 通常手番の処理（CPUまたはBot有効時のPlayer0）
       const p = gameState.players[gameState.turn];
-      if (!p.isCPU) return;
+      const isAutoActive = p.isCPU || (gameState.turn === 0 && botMode);
+      if (!isAutoActive) return;
 
       if (gameState.phase === 'draw') {
         doDraw();
@@ -716,22 +819,42 @@ export default function App() {
       isSubscribed = false;
       clearTimeout(timer);
     };
-  }, [gameState.turn, gameState.phase, gameState.actionCount, gameState.winner, gameState.roundOver, gameState.interruptInfo, doDraw, doMeld, doAdd, doDiscard, doPassInterrupt, doInterruptAction]);
+  }, [gameState.turn, gameState.phase, gameState.actionCount, gameState.winner, gameState.roundOver, gameState.interruptInfo, botMode, botSpeed, doDraw, doMeld, doAdd, doDiscard, doPassInterrupt, doInterruptAction]);
 
   // ラウンド進行
-  const nextRound = () => {
+  const nextRound = useCallback(() => {
     if (gameState.round < 4) {
+      isRoundEndingRef.current = false;
+      hasRecordedStatsRef.current = false;
       setGameState(setupRound(gameState.scores, gameState.round + 1));
       setSelectedHand([]);
       setSelectedMeld(null);
     }
-  };
+  }, [gameState.round, gameState.scores]);
 
-  const restartGame = () => {
+  const restartGame = useCallback(() => {
+    isRoundEndingRef.current = false;
+    hasRecordedStatsRef.current = false;
     setGameState(setupRound([0, 0, 0, 0], 1));
     setSelectedHand([]);
     setSelectedMeld(null);
-  };
+  }, []);
+
+  // Botモード時の自動ラウンド進行（放置テスト用）
+  useEffect(() => {
+    if (!botMode || !gameState.roundOver) return;
+
+    const autoDelay = botSpeed === 'ultra' ? 300 : botSpeed === 'fast' ? 1000 : 2500;
+    const timer = setTimeout(() => {
+      if (gameState.round < 4) {
+        nextRound();
+      } else {
+        restartGame();
+      }
+    }, autoDelay);
+
+    return () => clearTimeout(timer);
+  }, [botMode, gameState.roundOver, gameState.round, botSpeed, nextRound, restartGame]);
 
   // ガイド文言（短く明確で自然な日本語、1行で美しく収まる）
   const getGuideMessage = () => {
@@ -842,6 +965,14 @@ export default function App() {
       />
 
       {/* モーダル群 */}
+      <StatsModal
+        isOpen={showStatsModal}
+        stats={stats}
+        gameState={gameState}
+        onClose={() => setShowStatsModal(false)}
+        onUpdateStats={setStats}
+      />
+
       <RuleModal
         isOpen={showRuleModal}
         onClose={() => setShowRuleModal(false)}
@@ -851,8 +982,16 @@ export default function App() {
         isOpen={showOptionModal}
         soundEnabled={soundEnabled}
         cardToneEnabled={cardToneEnabled}
+        botMode={botMode}
+        botSpeed={botSpeed}
+        botTargetCount={botTargetCount}
+        botRemainingCount={botRemainingCount}
         onToggleSound={toggleSound}
         onToggleCardTone={toggleCardTone}
+        onToggleBot={toggleBotMode}
+        onChangeBotSpeed={cycleBotSpeed}
+        onChangeBotTargetCount={changeBotTargetCount}
+        onOpenStats={() => setShowStatsModal(true)}
         onClose={() => setShowOptionModal(false)}
       />
 

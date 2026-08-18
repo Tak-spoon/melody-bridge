@@ -1,14 +1,13 @@
 import React from 'react';
 import { Music } from 'lucide-react';
 import { Card as CardType } from '../types/game';
-import { NOTE_NAMES, NOTE_JP, SUITS } from '../constants/music';
+import { NOTE_NAMES, NOTE_JP } from '../constants/music';
 
 interface CardProps {
   card: CardType;
   isSelected?: boolean;
   onClick?: () => void;
   interpretedAbsVal?: number | null;
-  interpretedSuit?: 'red' | 'blue' | null;
   sizeClass?: string;
   isHighlighted?: boolean;
   isDimmed?: boolean;
@@ -21,14 +20,13 @@ export const Card: React.FC<CardProps> = ({
   isSelected = false,
   onClick,
   interpretedAbsVal = null,
-  interpretedSuit = null,
   sizeClass = "w-11 h-15 sm:w-13 sm:h-18",
   isHighlighted = false,
   isDimmed = false,
   isHidden = false,
   extraClass = ""
 }) => {
-  // トランプの裏面（山札・王牌のカードバック）
+  // トランプの裏面（山札のカードバック）
   if (isHidden) {
     return (
       <div 
@@ -43,10 +41,8 @@ export const Card: React.FC<CardProps> = ({
   }
 
   const absValToUse = interpretedAbsVal !== null && interpretedAbsVal !== undefined ? interpretedAbsVal : card.absVal;
-  const suitToUse = interpretedSuit !== null && interpretedSuit !== undefined ? interpretedSuit : card.suit;
   
-  const oct = Math.floor(absValToUse / 7) + 3;
-  const suitObj = SUITS.find(s => s.id === suitToUse) || SUITS[0];
+  const oct = Math.floor(absValToUse / 7) + 2;
   const noteIndex = absValToUse % 7;
 
   return (
@@ -54,7 +50,7 @@ export const Card: React.FC<CardProps> = ({
       onClick={onClick}
       className={`relative ${sizeClass} rounded-md sm:rounded-lg border-2 flex flex-col items-center justify-center select-none
         transition-transform duration-100 ease-out
-        ${suitObj.color}
+        border-amber-700/50 text-amber-900 bg-gradient-to-b from-[#faf7ee] via-white to-[#f5f0e0]
         ${isSelected 
           ? '-translate-y-3 shadow-[0_8px_16px_rgba(0,0,0,0.25)] z-20 cursor-pointer' 
           : isDimmed

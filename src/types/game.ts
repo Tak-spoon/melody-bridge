@@ -1,11 +1,11 @@
-export type SuitType = 'red' | 'blue';
+// スート（赤・青）は廃止済み
 
 export interface Card {
   id: string;
   val: number;        // 0: C, 1: D, ... 6: B
-  oct: number;        // 3, 4, 5
-  absVal: number;     // 0〜20 (0: C3, ..., 20: B5)
-  suit: SuitType;
+  oct: number;        // 2, 3, 4, 5
+  absVal: number;     // 0〜27 (0: C2, ..., 27: B5)
+
   interpretedAbsVal?: number; // 和音やスケール解釈時の配置値
 }
 
@@ -18,6 +18,13 @@ export interface Meld {
   cards: Card[];
 }
 
+export interface PlayerActionCounts {
+  melds: number;
+  adds: number;
+  pon: number;
+  chii: number;
+}
+
 export interface Player {
   id: number;
   name: string;
@@ -25,6 +32,7 @@ export interface Player {
   hasMelded: boolean;
   justDrawnCardId: string | null;
   isCPU: boolean;
+  actions: PlayerActionCounts;
 }
 
 export interface LogEntry {

@@ -2,17 +2,18 @@ import { Card, GameState, InterruptCandidate, Player } from '../types/game';
 import { getChordInterpretation, getScaleInterpretation } from './musicTheory';
 
 /**
- * 42枚のカード山札（赤21枚＋青21枚）を生成し、シャッフルして返します。
+ * 56枚のカード山札（白鍵28音 × 各2枚・スートなし）を生成し、シャッフルして返します。
  */
 export const createDeck = (): Card[] => {
   const deck: Card[] = [];
   let idCounter = 0;
   
-  for (let absVal = 0; absVal < 21; absVal++) {
-    const oct = Math.floor(absVal / 7) + 3;
+  for (let absVal = 0; absVal < 28; absVal++) {
+    const oct = Math.floor(absVal / 7) + 2;
     const val = absVal % 7;
-    deck.push({ id: `c_${idCounter++}`, val, oct, absVal, suit: 'red' });
-    deck.push({ id: `c_${idCounter++}`, val, oct, absVal, suit: 'blue' });
+    for (let copy = 0; copy < 2; copy++) {
+      deck.push({ id: `c_${idCounter++}`, val, oct, absVal });
+    }
   }
 
   // Fisher-Yates シャッフル
@@ -24,14 +25,10 @@ export const createDeck = (): Card[] => {
 };
 
 /**
- * 手札を色（赤→青）および音の高さ（低い音→高い音）順にソートします。
+ * 手札を音の高さ（低い音→高い音）順にソートします。
  */
 export const sortHand = (hand: Card[]): Card[] => {
-  return [...hand].sort((a, b) => {
-    if (a.suit === 'red' && b.suit === 'blue') return -1;
-    if (a.suit === 'blue' && b.suit === 'red') return 1;
-    return a.absVal - b.absVal;
-  });
+  return [...hand].sort((a, b) => a.absVal - b.absVal);
 };
 
 /**
@@ -39,11 +36,12 @@ export const sortHand = (hand: Card[]): Card[] => {
  */
 export const setupRound = (scores: number[] = [0, 0, 0, 0], roundNum: number = 1): GameState => {
   const deck = createDeck();
+  const defaultActions = { melds: 0, adds: 0, pon: 0, chii: 0 };
   const players: Player[] = [
-    { id: 0, name: 'あなた', hand: [], hasMelded: false, justDrawnCardId: null, isCPU: false },
-    { id: 1, name: 'CPU 1', hand: [], hasMelded: false, justDrawnCardId: null, isCPU: true },
-    { id: 2, name: 'CPU 2', hand: [], hasMelded: false, justDrawnCardId: null, isCPU: true },
-    { id: 3, name: 'CPU 3', hand: [], hasMelded: false, justDrawnCardId: null, isCPU: true },
+    { id: 0, name: 'あなた', hand: [], hasMelded: false, justDrawnCardId: null, isCPU: false, actions: { ...defaultActions } },
+    { id: 1, name: 'CPU 1', hand: [], hasMelded: false, justDrawnCardId: null, isCPU: true, actions: { ...defaultActions } },
+    { id: 2, name: 'CPU 2', hand: [], hasMelded: false, justDrawnCardId: null, isCPU: true, actions: { ...defaultActions } },
+    { id: 3, name: 'CPU 3', hand: [], hasMelded: false, justDrawnCardId: null, isCPU: true, actions: { ...defaultActions } },
   ];
 
   // 各プレイヤーに7枚ずつ配る
@@ -57,19 +55,13 @@ export const setupRound = (scores: number[] = [0, 0, 0, 0], roundNum: number = 1
   // プレイヤーの手札をソート
   players[0].hand = sortHand(players[0].hand);
 
-  // 王牌（山札の端から2枚を裏向きで捨てる）
-  const hidden1 = deck.pop()!;
-  const hidden2 = deck.pop()!;
   const startingTurn = (roundNum - 1) % 4;
 
   return {
     round: roundNum,
     scores,
     deck,
-    discardPile: [
-      { card: hidden1, discarderId: 'system', isHidden: true },
-      { card: hidden2, discarderId: 'system', isHidden: true }
-    ],
+    discardPile: [],
     players,
     field: [],
     turn: startingTurn,
@@ -79,7 +71,6 @@ export const setupRound = (scores: number[] = [0, 0, 0, 0], roundNum: number = 1
     roundOver: false,
     message: `ラウンド ${roundNum} スタート`,
     logs: [
-      { player: 'システム', text: `初期の王牌2枚が裏向きで捨てられました。` },
       { player: 'システム', text: `[R${roundNum}] ラウンド開始。先手: ${players[startingTurn].name}` }
     ],
     actionCount: 0

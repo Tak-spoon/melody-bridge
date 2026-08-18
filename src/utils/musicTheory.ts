@@ -91,8 +91,8 @@ export const getChordSymbol = (cards: Card[]): string => {
  */
 export const generateValidScaleTargets = (length: number): number[][] => {
   const targets: number[][] = [];
-  for (let start = 0; start <= 20; start++) {
-    if (start + length - 1 <= 20) {
+  for (let start = 0; start <= 27; start++) {
+    if (start + length - 1 <= 27) {
       const target: number[] = [];
       for (let i = 0; i < length; i++) target.push(start + i);
       targets.push(target);
@@ -106,16 +106,16 @@ export const generateValidScaleTargets = (length: number): number[][] => {
  */
 export const generateValidChordTargets = (length: number): number[][] => {
   const targets: number[][] = [];
-  for (let start = 0; start <= 20; start++) {
+  for (let start = 0; start <= 27; start++) {
     if (length === 3) {
-      if (start + 4 <= 20) targets.push([start, start + 2, start + 4]); 
-      if (start + 5 <= 20) {
+      if (start + 4 <= 27) targets.push([start, start + 2, start + 4]); 
+      if (start + 5 <= 27) {
         targets.push([start, start + 2, start + 5]); 
         targets.push([start, start + 3, start + 5]); 
       }
     } else if (length === 4) {
-      if (start + 6 <= 20) targets.push([start, start + 2, start + 4, start + 6]); 
-      if (start + 5 <= 20) {
+      if (start + 6 <= 27) targets.push([start, start + 2, start + 4, start + 6]); 
+      if (start + 5 <= 27) {
         targets.push([start, start + 2, start + 4, start + 5]); 
         targets.push([start, start + 2, start + 3, start + 5]); 
         targets.push([start, start + 1, start + 3, start + 5]); 
@@ -126,12 +126,10 @@ export const generateValidChordTargets = (length: number): number[][] => {
 };
 
 /**
- * カード群が目標パターン（ターゲット）と一致しているか（同じ色かつ音の値が一致）
+ * カード群が目標パターン（ターゲット）と一致しているか（音の値が一致、同一absVal重複なし）
  */
 export const isMatchTarget = (cards: Card[], target: number[]): boolean => {
   if (cards.length === 0) return false;
-  const firstSuit = cards[0].suit;
-  if (!cards.every(c => c.suit === firstSuit)) return false;
   
   const normalVals = cards.map(c => c.absVal);
   const used = new Set<number>();
@@ -156,8 +154,7 @@ export const buildInterpretedSequence = (cardObjs: Card[], targetSeq: number[]):
       usedIds.add(found.id);
       result.push({ 
         ...found, 
-        interpretedAbsVal: targetVal,
-        suit: found.suit
+        interpretedAbsVal: targetVal
       });
     }
   }
@@ -188,9 +185,6 @@ export const getChordInterpretation = (cardObjs: Card[]): Card[] | null => getIn
  */
 export const tryAddCardToMeld = (cardObj: Card, meld: Meld): Card[] | null => {
   const currentCards = meld.cards;
-  const meldSuit = currentCards[0].suit;
-
-  if (cardObj.suit !== meldSuit) return null;
 
   const newLength = currentCards.length + 1;
   if (meld.type === 'chord' && newLength > 4) return null;
@@ -200,11 +194,14 @@ export const tryAddCardToMeld = (cardObj: Card, meld: Meld): Card[] | null => {
     val: c.val,
     oct: c.oct,
     absVal: c.interpretedAbsVal ?? c.absVal,
-    suit: c.suit,
     interpretedAbsVal: c.interpretedAbsVal
   }));
   
-  const testCards = [...fixedCurrentCards, { ...cardObj, suit: meldSuit }];
+  const testCards = [...fixedCurrentCards, { ...cardObj }];
+
+  // 同一absValの重複チェック
+  const absVals = testCards.map(c => c.absVal);
+  if (new Set(absVals).size !== absVals.length) return null;
 
   if (meld.type === 'scale') {
     const targets = generateValidScaleTargets(newLength);
