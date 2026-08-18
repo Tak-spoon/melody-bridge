@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BookOpen, Gamepad2, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BookOpen, Gamepad2, X, ChevronLeft, ChevronRight, ArrowRight, CheckCircle2, AlertCircle, PlusCircle, RefreshCw } from 'lucide-react';
 
 interface RuleSection {
   title: string;
@@ -7,71 +7,156 @@ interface RuleSection {
 }
 
 // -------------------------------------------------------------
-// 1. ルール説明（ゲームの概念・音楽理論・勝敗）
+// マニュアル専用：視覚的ミニカードコンポーネント
+// -------------------------------------------------------------
+interface MiniCardProps {
+  note: string;
+  oct?: number;
+  jp: string;
+  highlight?: 'gold' | 'blue' | 'green' | 'orange' | 'purple' | 'red';
+  compact?: boolean;
+}
+
+const MiniCard: React.FC<MiniCardProps> = ({ note, oct = 3, jp, highlight, compact = false }) => {
+  let borderClass = 'border-amber-700/60 bg-[#faf7ee] text-amber-950';
+  if (highlight === 'gold') borderClass = 'border-amber-400 bg-amber-100/90 text-amber-950 ring-1 ring-amber-400';
+  if (highlight === 'blue') borderClass = 'border-sky-400 bg-sky-100/90 text-sky-950 ring-1 ring-sky-400';
+  if (highlight === 'green') borderClass = 'border-emerald-400 bg-emerald-100/90 text-emerald-950 ring-1 ring-emerald-400';
+  if (highlight === 'orange') borderClass = 'border-orange-400 bg-orange-100/90 text-orange-950 ring-1 ring-orange-400';
+  if (highlight === 'purple') borderClass = 'border-purple-400 bg-purple-100/90 text-purple-950 ring-1 ring-purple-400';
+  if (highlight === 'red') borderClass = 'border-rose-400 bg-rose-100/90 text-rose-950 ring-1 ring-rose-400';
+
+  const sizeClass = compact 
+    ? 'w-[22px] h-[31px] rounded-[3px]' 
+    : 'w-6 h-9 sm:w-7 sm:h-10 rounded';
+
+  return (
+    <div className={`inline-flex flex-col items-center justify-center border shadow-xs select-none shrink-0 ${sizeClass} ${borderClass}`}>
+      <span className={`${compact ? 'text-[8.5px]' : 'text-[9.5px] sm:text-[10.5px]'} font-black leading-none flex items-baseline`}>
+        {note}
+        <span className={`${compact ? 'text-[6px]' : 'text-[6.5px]'} font-bold opacity-75 ml-0.2`}>{oct}</span>
+      </span>
+      <span className={`${compact ? 'text-[6.5px]' : 'text-[7px]'} font-bold opacity-85 leading-none mt-0.5`}>
+        {jp}
+      </span>
+    </div>
+  );
+};
+
+// -------------------------------------------------------------
+// 1. ルール説明（ゲームの目的・役・勝敗・成立コード一覧）
 // -------------------------------------------------------------
 const RULES_DATA: RuleSection[] = [
   {
     title: "1. ゲームの目的とカード構成",
     content: (
-      <div className="space-y-2.5 text-xs text-amber-100/90 leading-relaxed select-none">
-        <p>「メロディ・ブリッジ」は、音楽のコード（和音）やスケール（音階）を作って手札を減らしていく音楽トランプゲームです。</p>
+      <div className="space-y-2 text-xs text-amber-100/90 leading-relaxed select-none">
+        <p className="font-bold text-amber-200">
+          手札から音楽の「コード（和音）」や「スケール（音階）」を場に出し、誰よりも早く手札を無くすゲームです。
+        </p>
         
-        <p><strong className="text-amber-300">【カードの構成】</strong></p>
-        <div className="bg-[#26180f] p-2.5 rounded-lg border border-amber-900/60 shadow-inner">
-          1オクターブはピアノの白鍵（ドレミファソラシ）の7音のみで構成されています。<br/>
-          「7音 × C2〜B5の4オクターブ × 各音2枚」＝ <strong className="text-amber-300 font-black">計56枚</strong> を使用します。<br/>
-          各プレイヤーに手札7枚が配られてゲームが始まります。
+        <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/80 space-y-1.5 shadow-inner">
+          <span className="text-[11px] font-black text-amber-300 block">カードの構成（全56枚）</span>
+          <div className="flex items-center justify-between gap-0.5 bg-[#120a05] p-1.5 rounded-lg border border-amber-950">
+            <MiniCard note="C" oct={3} jp="ド" />
+            <MiniCard note="D" oct={3} jp="レ" />
+            <MiniCard note="E" oct={3} jp="ミ" />
+            <MiniCard note="F" oct={3} jp="ファ" />
+            <MiniCard note="G" oct={3} jp="ソ" />
+            <MiniCard note="A" oct={3} jp="ラ" />
+            <MiniCard note="B" oct={3} jp="シ" />
+          </div>
+          <p className="text-[10px] text-amber-200/80 leading-normal">
+            ピアノの白鍵7音 × 4オクターブ（C2〜B5）× 各音2枚 ＝ <strong>計56枚</strong> を使用。<br/>
+            各プレイヤーに <strong>手札7枚</strong> が配られて対戦が始まります。
+          </p>
         </div>
       </div>
     )
   },
   {
-    title: "2. セット（役）の作り方",
+    title: "2. 役の基本 と クローズドボイシング",
     content: (
-      <div className="space-y-2.5 text-xs text-amber-100/90 leading-relaxed select-none">
-        <p>場に出せる役（セット）には2種類あります。</p>
+      <div className="space-y-2 text-xs text-amber-100/90 leading-relaxed select-none">
+        <p>場に出せる役（セット）は <strong>3枚以上</strong> で成立します。</p>
         
-        {/* コード */}
-        <div className="bg-[#26180f] p-2.5 rounded-lg border border-amber-900/60 shadow-inner">
-          <p className="font-black text-amber-300 text-xs mb-0.5">♪ コード（和音）</p>
-          <p className="text-[11px]">和音（3〜4音）の構成音を揃えます。順番はバラバラ（転回形）でも構いません。</p>
-          <p className="text-[10px] text-amber-300/80 font-bold mt-0.5">※1オクターブ以内のクローズドボイシングに対応。</p>
-          <p className="text-[10px] text-amber-200/70">例：ド・ミ・ソ (C) / レ・ファ・ラ (Dm) / ミ・ソ・シ・ド (CM7転回形)</p>
+        {/* ボイシングルール警告ボックス */}
+        <div className="bg-[#301c10] p-2 rounded-xl border border-amber-500/70 text-[10px] text-amber-100 shadow-inner">
+          <strong className="text-amber-300 font-bold block mb-0.5">※ クローズドボイシング（密集配置）限定</strong>
+          コードは最高音と最低音の音程差が <strong>「1オクターブ（7音分）以内」</strong> に収まっている必要があります（オクターブをまたぐ離れた配置は不可）。順番の並び替え（転回形）は自由です。
         </div>
-        
-        {/* スケール */}
-        <div className="bg-[#26180f] p-2.5 rounded-lg border border-amber-900/60 shadow-inner">
-          <p className="font-black text-amber-300 text-xs mb-0.5">➡ スケール（音階）</p>
-          <p className="text-[11px]">音階順に連続する3枚以上のカードを揃えます。</p>
-          <p className="text-[10px] text-amber-200/70 mt-0.5">例：ド・レ・ミ / ソ・ラ・シ・ド など</p>
+
+        {/* 2大役の概要 */}
+        <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+          <div className="bg-[#24150c] p-2 rounded-xl border border-amber-500/40 text-[10px] shadow-inner space-y-1">
+            <span className="font-black text-amber-300 block">コード（3〜4枚）</span>
+            <div className="flex items-center gap-0.5 justify-center py-0.5">
+              <MiniCard note="C" oct={3} jp="ド" highlight="gold" />
+              <MiniCard note="E" oct={3} jp="ミ" highlight="gold" />
+              <MiniCard note="G" oct={3} jp="ソ" highlight="gold" />
+            </div>
+            <span className="text-amber-300/80 block text-center text-[9px]">ド・ミ・ソ (C)</span>
+          </div>
+
+          <div className="bg-[#24150c] p-2 rounded-xl border border-sky-500/40 text-[10px] shadow-inner space-y-1">
+            <span className="font-black text-sky-300 block">スケール（3枚以上）</span>
+            <div className="flex items-center gap-0.5 justify-center py-0.5">
+              <MiniCard note="C" oct={3} jp="ド" highlight="blue" />
+              <MiniCard note="D" oct={3} jp="レ" highlight="blue" />
+              <MiniCard note="E" oct={3} jp="ミ" highlight="blue" />
+            </div>
+            <span className="text-sky-300/80 block text-center text-[9px]">音階順に連続</span>
+          </div>
         </div>
       </div>
     )
   },
   {
-    title: "3. 付け札 ＆ 入れ替え（★重要）",
+    title: "3. 付け札 と 入れ替え（アレンジ）",
     content: (
-      <div className="space-y-2.5 text-xs text-amber-100/90 leading-relaxed select-none">
-        <p>場に出ているセットを活用して手札を有利に減らすことができます。</p>
+      <div className="space-y-2 text-xs text-amber-100/90 leading-relaxed select-none">
+        <p>場に出ているセットを活用して手札を有利に減らせます。</p>
         
         {/* 付け札 */}
-        <div className="bg-[#26180f] p-2 rounded-lg border border-emerald-800/60 shadow-inner">
-          <p className="font-black text-emerald-300 text-xs mb-0.5">🌿 付け札（Add）</p>
-          <p className="text-[11px]">場のセットに手札のカードを1枚追加します（1手番に何枚でも可能）。</p>
-          <ul className="list-disc pl-4 text-[10px] text-emerald-200/80 mt-0.5">
-            <li>コード：3和音に4音目を追加して7thコード等へ進化（最大4枚）</li>
-            <li>スケール：音階の両端に隣り合う音を追加して延長</li>
-          </ul>
+        <div className="bg-[#24150c] p-2 rounded-xl border border-emerald-500/40 space-y-1 shadow-inner">
+          <span className="font-black text-emerald-300 text-xs flex items-center gap-1">
+            <PlusCircle className="w-3.5 h-3.5" /> 付け札（1手番何枚でもOK）
+          </span>
+          <div className="flex items-center gap-1 bg-[#120a05] p-1.5 rounded-lg border border-amber-950 text-[10px]">
+            <div className="flex items-center gap-0.5">
+              <MiniCard note="C" oct={3} jp="ド" />
+              <MiniCard note="E" oct={3} jp="ミ" />
+              <MiniCard note="G" oct={3} jp="ソ" />
+            </div>
+            <ArrowRight className="w-3 h-3 text-emerald-400 shrink-0" />
+            <div className="flex items-center gap-0.5">
+              <span className="text-emerald-300 font-bold">+</span>
+              <MiniCard note="B" oct={3} jp="シ" highlight="green" />
+            </div>
+            <ArrowRight className="w-3 h-3 text-emerald-400 shrink-0" />
+            <span className="text-emerald-300 font-black">CM7 に進化！</span>
+          </div>
         </div>
 
         {/* 入れ替え */}
-        <div className="bg-[#26180f] p-2 rounded-lg border border-cyan-800/60 shadow-inner">
-          <p className="font-black text-cyan-300 text-xs mb-0.5">🔄 入れ替え（スワップ・リハーモナイズ）</p>
-          <p className="text-[11px]">場の和音の1枚を手札の1枚と交換し、新たな和音へアレンジできます！</p>
-          <ul className="list-disc pl-4 text-[10px] text-cyan-200/80 mt-0.5">
-            <li>押し出された場のカードは<strong className="text-cyan-300">手札に回収</strong>されます。</li>
-            <li>1手番につき最大1回まで。初手の手札事故時でも役出し前から使用可能です！</li>
-          </ul>
+        <div className="bg-[#24150c] p-2 rounded-xl border border-orange-500/40 space-y-1 shadow-inner">
+          <span className="font-black text-orange-300 text-xs flex items-center gap-1">
+            <RefreshCw className="w-3.5 h-3.5" /> 入れ替え（1手番1回まで）
+          </span>
+          <div className="flex items-center gap-1 bg-[#120a05] p-1.5 rounded-lg border border-amber-950 text-[10px]">
+            <div className="flex items-center gap-0.5">
+              <MiniCard note="C" oct={3} jp="ド" />
+              <MiniCard note="E" oct={3} jp="ミ" />
+              <MiniCard note="G" oct={3} jp="ソ" />
+            </div>
+            <ArrowRight className="w-3 h-3 text-orange-400 shrink-0" />
+            <div className="flex items-center gap-0.5">
+              <span className="text-orange-300 font-bold">入替</span>
+              <MiniCard note="B" oct={3} jp="シ" highlight="orange" />
+            </div>
+            <ArrowRight className="w-3 h-3 text-orange-400 shrink-0" />
+            <span className="text-orange-300 font-black">Em (ド回収)</span>
+          </div>
         </div>
       </div>
     )
@@ -80,39 +165,225 @@ const RULES_DATA: RuleSection[] = [
     title: "4. 割り込み（ポン・チー）と鳴き制限",
     content: (
       <div className="space-y-2 text-xs text-amber-100/90 leading-relaxed select-none">
-        <p>他人が捨てたカードをもらってセットを完成させることができます。</p>
+        <p>他人が捨てたカードを使って、自分の手番外でもセットを場に出せます。</p>
         
-        <div className="bg-[#26180f] p-2 rounded-lg border border-amber-900/60 text-[10.5px] shadow-inner space-y-1">
-          <p><strong className="text-amber-300">【ポン（コード）】</strong> 誰の捨て札からでもOK（捨て札1枚＋手札2枚）</p>
-          <p><strong className="text-amber-300">【チー（スケール）】</strong> <strong className="text-amber-200">直前の人（左隣・上家）</strong>の捨て札からのみ（捨て札1枚＋手札2枚）</p>
+        <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/80 space-y-1.5 shadow-inner text-[10.5px]">
+          <div className="flex items-center gap-2">
+            <span className="px-1.5 py-0.2 rounded bg-amber-500 text-slate-950 font-black text-[10px] shrink-0">ポン</span>
+            <span><strong>コードを完成</strong>：誰の捨て札からでも可能（捨て札1枚＋手札2枚）</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="px-1.5 py-0.2 rounded bg-sky-500 text-slate-950 font-black text-[10px] shrink-0">チー</span>
+            <span><strong>スケールを完成</strong>：<strong>直前の人（左隣・上家）</strong>の捨て札からのみ</span>
+          </div>
         </div>
 
-        <div className="bg-[#331818] p-2 rounded-lg border border-red-500/60 text-[10.5px] text-red-200 shadow-inner">
-          <strong className="text-red-300 font-bold">⚠️ 鳴きアガリ禁止ルール</strong><br/>
-          手札が2枚（鳴いたら手札が0枚になる状態）の時は、ポン・チーによる即アガリはできません。自力ドローや付け札・役出しでアガりましょう。
+        <div className="bg-[#301614] p-2 rounded-xl border border-rose-500/70 text-[10px] text-rose-200 shadow-inner flex items-start gap-1.5">
+          <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
+          <div>
+            <strong className="text-rose-300 block">鳴きアガリ禁止ルール</strong>
+            手札2枚（鳴いたら手札0枚になる状態）の時は、ポン・チーによる即アガリはできません。自力ドローや付け札でアガりましょう。
+          </div>
         </div>
       </div>
     )
   },
   {
-    title: "5. ラウンドと勝敗（失点計算）",
+    title: "5. ラウンド勝敗とポイント計算",
     content: (
       <div className="space-y-2 text-xs text-amber-100/90 leading-relaxed select-none">
-        <p><strong className="text-amber-300">【ラウンドの終了条件】</strong></p>
-        <ul className="list-disc pl-4 space-y-0.5 text-[11px]">
-          <li>誰かの手札が0枚になった時（アガリ）</li>
-          <li>山札0枚時の捨て札に対して誰もポン・チーしなかった時（流局）</li>
-        </ul>
-
-        <div>
-          <p><strong className="text-amber-300">【ポイント計算】</strong></p>
-          <p className="mt-0.5 text-[11px]">ラウンド終了時、手札に残っている枚数がそのまま「ペナルティ失点」となります（アガった人は0点）。</p>
+        <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/80 space-y-1 shadow-inner text-[10.5px]">
+          <span className="text-amber-300 font-bold block">ラウンド終了条件</span>
+          <ul className="list-disc pl-4 space-y-0.5 text-amber-200/90">
+            <li>誰かの手札が0枚になった時（アガリ）</li>
+            <li>山札0枚時の捨て札に対して誰もポン・チーしなかった時（流局）</li>
+          </ul>
         </div>
 
-        <div className="bg-[#26180f] p-2 rounded-lg border border-amber-600/50 shadow-inner text-center">
-          <p className="font-black text-amber-300 text-xs">
-            全4ラウンド終了時、合計失点が<br/>一番少ない人の総合優勝！
+        <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/80 space-y-1 shadow-inner text-[10.5px]">
+          <span className="text-amber-300 font-bold block">ペナルティ失点計算</span>
+          <p className="text-amber-200/90">
+            手札に残った枚数がそのまま「失点」となります（アガった人は0点）。
           </p>
+        </div>
+
+        <div className="bg-gradient-to-r from-amber-950 via-[#3a2012] to-amber-950 p-2 rounded-xl border border-amber-500/60 text-center shadow-md">
+          <p className="font-black text-amber-300 text-xs">
+            全4ラウンド終了時、合計失点が最も少ない人が総合優勝！
+          </p>
+        </div>
+      </div>
+    )
+  },
+  {
+    title: "6. 基本3和音一覧（全7種）",
+    content: (
+      <div className="space-y-1 text-xs text-amber-100/90 select-none">
+        <p className="text-[10px] text-amber-200/80">
+          白鍵で作れる基本の3和音一覧です（1オクターブ内・転回形もOK）。
+        </p>
+
+        {/* カードデザインを活かした2列グリッド（スクロールゼロ） */}
+        <div className="grid grid-cols-2 gap-1 bg-[#140b07] p-1.5 rounded-xl border border-amber-900/70">
+          {/* C */}
+          <div className="bg-[#24150c] px-1.5 py-0.5 rounded-lg border border-amber-950 flex items-center justify-between">
+            <span className="font-black text-amber-300 text-[10.5px] w-6">C</span>
+            <div className="flex gap-0.5">
+              <MiniCard note="C" oct={3} jp="ド" highlight="gold" compact />
+              <MiniCard note="E" oct={3} jp="ミ" highlight="gold" compact />
+              <MiniCard note="G" oct={3} jp="ソ" highlight="gold" compact />
+            </div>
+          </div>
+
+          {/* Dm */}
+          <div className="bg-[#24150c] px-1.5 py-0.5 rounded-lg border border-amber-950 flex items-center justify-between">
+            <span className="font-black text-amber-300 text-[10.5px] w-6">Dm</span>
+            <div className="flex gap-0.5">
+              <MiniCard note="D" oct={3} jp="レ" highlight="gold" compact />
+              <MiniCard note="F" oct={3} jp="ファ" highlight="gold" compact />
+              <MiniCard note="A" oct={3} jp="ラ" highlight="gold" compact />
+            </div>
+          </div>
+
+          {/* Em */}
+          <div className="bg-[#24150c] px-1.5 py-0.5 rounded-lg border border-amber-950 flex items-center justify-between">
+            <span className="font-black text-amber-300 text-[10.5px] w-6">Em</span>
+            <div className="flex gap-0.5">
+              <MiniCard note="E" oct={3} jp="ミ" highlight="gold" compact />
+              <MiniCard note="G" oct={3} jp="ソ" highlight="gold" compact />
+              <MiniCard note="B" oct={3} jp="シ" highlight="gold" compact />
+            </div>
+          </div>
+
+          {/* F */}
+          <div className="bg-[#24150c] px-1.5 py-0.5 rounded-lg border border-amber-950 flex items-center justify-between">
+            <span className="font-black text-amber-300 text-[10.5px] w-6">F</span>
+            <div className="flex gap-0.5">
+              <MiniCard note="F" oct={3} jp="ファ" highlight="gold" compact />
+              <MiniCard note="A" oct={3} jp="ラ" highlight="gold" compact />
+              <MiniCard note="C" oct={4} jp="ド" highlight="gold" compact />
+            </div>
+          </div>
+
+          {/* G */}
+          <div className="bg-[#24150c] px-1.5 py-0.5 rounded-lg border border-amber-950 flex items-center justify-between">
+            <span className="font-black text-amber-300 text-[10.5px] w-6">G</span>
+            <div className="flex gap-0.5">
+              <MiniCard note="G" oct={3} jp="ソ" highlight="gold" compact />
+              <MiniCard note="B" oct={3} jp="シ" highlight="gold" compact />
+              <MiniCard note="D" oct={4} jp="レ" highlight="gold" compact />
+            </div>
+          </div>
+
+          {/* Am */}
+          <div className="bg-[#24150c] px-1.5 py-0.5 rounded-lg border border-amber-950 flex items-center justify-between">
+            <span className="font-black text-amber-300 text-[10.5px] w-6">Am</span>
+            <div className="flex gap-0.5">
+              <MiniCard note="A" oct={3} jp="ラ" highlight="gold" compact />
+              <MiniCard note="C" oct={4} jp="ド" highlight="gold" compact />
+              <MiniCard note="E" oct={4} jp="ミ" highlight="gold" compact />
+            </div>
+          </div>
+
+          {/* Bdim */}
+          <div className="bg-[#24150c] px-1.5 py-0.5 rounded-lg border border-amber-950 flex items-center justify-between">
+            <span className="font-black text-amber-300 text-[10px] w-7">Bdim</span>
+            <div className="flex gap-0.5">
+              <MiniCard note="B" oct={3} jp="シ" highlight="gold" compact />
+              <MiniCard note="D" oct={4} jp="レ" highlight="gold" compact />
+              <MiniCard note="F" oct={4} jp="ファ" highlight="gold" compact />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  },
+  {
+    title: "7. 発展4和音一覧（セブンス全7種）",
+    content: (
+      <div className="space-y-1 text-xs text-amber-100/90 select-none">
+        <p className="text-[10px] text-amber-200/80">
+          3和音に1枚付け札して作れる4和音一覧です（1オクターブ内）。
+        </p>
+
+        {/* カードデザインを活かした2列グリッド（スクロールゼロ） */}
+        <div className="grid grid-cols-2 gap-1 bg-[#140b07] p-1.5 rounded-xl border border-emerald-950/80">
+          {/* CM7 */}
+          <div className="bg-[#1b261b] px-1 py-0.5 rounded-lg border border-emerald-900/60 flex items-center justify-between">
+            <span className="font-black text-emerald-300 text-[9.5px] w-7">CM7</span>
+            <div className="flex gap-0.5">
+              <MiniCard note="C" oct={3} jp="ド" highlight="green" compact />
+              <MiniCard note="E" oct={3} jp="ミ" highlight="green" compact />
+              <MiniCard note="G" oct={3} jp="ソ" highlight="green" compact />
+              <MiniCard note="B" oct={3} jp="シ" highlight="green" compact />
+            </div>
+          </div>
+
+          {/* Dm7 */}
+          <div className="bg-[#1b261b] px-1 py-0.5 rounded-lg border border-emerald-900/60 flex items-center justify-between">
+            <span className="font-black text-emerald-300 text-[9.5px] w-7">Dm7</span>
+            <div className="flex gap-0.5">
+              <MiniCard note="D" oct={3} jp="レ" highlight="green" compact />
+              <MiniCard note="F" oct={3} jp="ファ" highlight="green" compact />
+              <MiniCard note="A" oct={3} jp="ラ" highlight="green" compact />
+              <MiniCard note="C" oct={4} jp="ド" highlight="green" compact />
+            </div>
+          </div>
+
+          {/* Em7 */}
+          <div className="bg-[#1b261b] px-1 py-0.5 rounded-lg border border-emerald-900/60 flex items-center justify-between">
+            <span className="font-black text-emerald-300 text-[9.5px] w-7">Em7</span>
+            <div className="flex gap-0.5">
+              <MiniCard note="E" oct={3} jp="ミ" highlight="green" compact />
+              <MiniCard note="G" oct={3} jp="ソ" highlight="green" compact />
+              <MiniCard note="B" oct={3} jp="シ" highlight="green" compact />
+              <MiniCard note="D" oct={4} jp="レ" highlight="green" compact />
+            </div>
+          </div>
+
+          {/* FM7 */}
+          <div className="bg-[#1b261b] px-1 py-0.5 rounded-lg border border-emerald-900/60 flex items-center justify-between">
+            <span className="font-black text-emerald-300 text-[9.5px] w-7">FM7</span>
+            <div className="flex gap-0.5">
+              <MiniCard note="F" oct={3} jp="ファ" highlight="green" compact />
+              <MiniCard note="A" oct={3} jp="ラ" highlight="green" compact />
+              <MiniCard note="C" oct={4} jp="ド" highlight="green" compact />
+              <MiniCard note="E" oct={4} jp="ミ" highlight="green" compact />
+            </div>
+          </div>
+
+          {/* G7 */}
+          <div className="bg-[#1b261b] px-1 py-0.5 rounded-lg border border-emerald-900/60 flex items-center justify-between">
+            <span className="font-black text-emerald-300 text-[9.5px] w-7">G7</span>
+            <div className="flex gap-0.5">
+              <MiniCard note="G" oct={3} jp="ソ" highlight="green" compact />
+              <MiniCard note="B" oct={3} jp="シ" highlight="green" compact />
+              <MiniCard note="D" oct={4} jp="レ" highlight="green" compact />
+              <MiniCard note="F" oct={4} jp="ファ" highlight="green" compact />
+            </div>
+          </div>
+
+          {/* Am7 */}
+          <div className="bg-[#1b261b] px-1 py-0.5 rounded-lg border border-emerald-900/60 flex items-center justify-between">
+            <span className="font-black text-emerald-300 text-[9.5px] w-7">Am7</span>
+            <div className="flex gap-0.5">
+              <MiniCard note="A" oct={3} jp="ラ" highlight="green" compact />
+              <MiniCard note="C" oct={4} jp="ド" highlight="green" compact />
+              <MiniCard note="E" oct={4} jp="ミ" highlight="green" compact />
+              <MiniCard note="G" oct={4} jp="ソ" highlight="green" compact />
+            </div>
+          </div>
+
+          {/* Bm7(♭5) */}
+          <div className="bg-[#1b261b] px-1 py-0.5 rounded-lg border border-emerald-900/60 flex items-center justify-between">
+            <span className="font-black text-emerald-300 text-[8.5px] w-9 shrink-0">Bm7(♭5)</span>
+            <div className="flex gap-0.5">
+              <MiniCard note="B" oct={3} jp="シ" highlight="green" compact />
+              <MiniCard note="D" oct={4} jp="レ" highlight="green" compact />
+              <MiniCard note="F" oct={4} jp="ファ" highlight="green" compact />
+              <MiniCard note="A" oct={4} jp="ラ" highlight="green" compact />
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -120,92 +391,169 @@ const RULES_DATA: RuleSection[] = [
 ];
 
 // -------------------------------------------------------------
-// 2. 操作説明（画面の操作方法・UIガイド）
+// 2. 操作ガイド（画面の操作方法・UIの見方）
 // -------------------------------------------------------------
 const CONTROLS_DATA: RuleSection[] = [
   {
-    title: "1. ターンの基本フロー",
+    title: "1. 自分の手番の流れ（3ステップ）",
     content: (
       <div className="space-y-2 text-xs text-amber-100/90 leading-relaxed select-none">
-        <p>自分の手番は以下の3つのステップで進行します。</p>
-
         <div className="space-y-1.5 text-[11px]">
-          <div className="bg-[#26180f] p-2 rounded-lg border border-amber-900/60 shadow-inner">
-            <strong className="text-amber-300 block">① 引く（ドロー）：</strong>
-            画面上部の<strong className="text-amber-300">「山札」</strong>をタップして1枚引きます。
+          <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/80 shadow-inner flex items-start gap-2">
+            <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center text-[10px] shrink-0">1</span>
+            <div>
+              <strong className="text-amber-300">引く（ドロー）：</strong><br/>
+              画面上部の「山札」をタップしてカードを1枚引きます。
+            </div>
           </div>
-          <div className="bg-[#26180f] p-2 rounded-lg border border-amber-900/60 shadow-inner">
-            <strong className="text-amber-300 block">② アクション（任意）：</strong>
-            「役出し」「付け札」「入れ替え」を好きな順序で行えます。
+
+          <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/80 shadow-inner flex items-start gap-2">
+            <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center text-[10px] shrink-0">2</span>
+            <div>
+              <strong className="text-amber-300">アクション（任意）：</strong><br/>
+              「役出し」「付け札」「入れ替え」を好きな順序で行えます。
+            </div>
           </div>
-          <div className="bg-[#26180f] p-2 rounded-lg border border-amber-900/60 shadow-inner">
-            <strong className="text-amber-300 block">③ 捨てる（ディスカード）：</strong>
-            手札から不要な1枚を選び、<strong className="text-amber-300">「捨てる」</strong>を押してターン終了。
+
+          <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/80 shadow-inner flex items-start gap-2">
+            <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center text-[10px] shrink-0">3</span>
+            <div>
+              <strong className="text-amber-300">捨てる（ディスカード）：</strong><br/>
+              手札から不要な1枚を選び、赤い「捨てる」ボタンを押してターン終了。
+            </div>
           </div>
         </div>
       </div>
     )
   },
   {
-    title: "2. 役を場に出す操作（コード・スケール）",
-    content: (
-      <div className="space-y-2.5 text-xs text-amber-100/90 leading-relaxed select-none">
-        <p>手札で3枚以上のコードやスケールが揃ったら、場に公開できます。</p>
-
-        <ol className="list-decimal pl-4 space-y-1.5 bg-[#26180f] p-2.5 rounded-lg border border-amber-900/60 shadow-inner text-[11px]">
-          <li>手札から役を作るカード（3枚以上）をタップして選択</li>
-          <li>役が完成すると、右下の<strong className="text-amber-300">「コード」</strong>または<strong className="text-amber-300">「スケール」</strong>ボタンが光ります</li>
-          <li>ボタンを押すと、場にセットが公開され美しい和音が響きます</li>
-        </ol>
-      </div>
-    )
-  },
-  {
-    title: "3. 付け札の操作方法",
+    title: "2. 役出しの操作（コード・スケール）",
     content: (
       <div className="space-y-2 text-xs text-amber-100/90 leading-relaxed select-none">
-        <p>場に出ているセットに、手札からカードを1枚追加する操作です。</p>
+        <div className="bg-[#24150c] p-2.5 rounded-xl border border-amber-900/80 space-y-1.5 shadow-inner text-[10.5px]">
+          <div className="flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span>手札から役を作るカード（3枚以上）をタップして選択</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span>役が揃うと、下の <strong>「コード（金）」</strong> または <strong>「スケール（青）」</strong> ボタンが点灯</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span>ボタンを押すと、場に公開されて美しい和音が鳴り響きます</span>
+          </div>
+        </div>
 
-        <div className="bg-[#26180f] p-2.5 rounded-xl border border-emerald-500/80 shadow-inner space-y-1">
-          <strong className="text-emerald-300 text-xs block">💡 付け札の3ステップ</strong>
-          <ol className="list-decimal pl-4 space-y-1 text-amber-100 text-[11px]">
-            <li>手札から追加したいカードを<strong className="text-emerald-300">1枚タップ</strong></li>
-            <li>場にある追加先のセットを<strong className="text-emerald-300">タップして選択</strong>（金枠で囲まれます）</li>
-            <li>右下の<strong className="text-emerald-300 font-black">「付け札」ボタン</strong>を押すとカードが差し込まれます</li>
-          </ol>
+        {/* コマンドカラー早見 */}
+        <div className="flex items-center justify-around bg-[#120a05] p-2 rounded-xl border border-amber-950 text-[10px] font-bold">
+          <span className="px-2 py-0.5 rounded bg-sky-900 text-sky-200 border border-sky-400">スケール（青）</span>
+          <span className="px-2 py-0.5 rounded bg-amber-900 text-amber-200 border border-amber-400">コード（金）</span>
+          <span className="px-2 py-0.5 rounded bg-rose-900 text-rose-200 border border-rose-400">捨てる（赤）</span>
         </div>
       </div>
     )
   },
   {
-    title: "4. 🔄 入れ替え（スワップ）の操作方法",
+    title: "3. 付け札 と 入れ替え（アレンジ）の操作",
     content: (
       <div className="space-y-2 text-xs text-amber-100/90 leading-relaxed select-none">
-        <p>場の和音と手札のカードを1対1で入れ替えて、新たな和音へアレンジする操作です。</p>
+        {/* 共通の起点ステップ */}
+        <div className="bg-[#24150c] p-2 rounded-xl border border-amber-500/60 space-y-1 shadow-inner text-[10.5px]">
+          <strong className="text-amber-300 font-bold block">💡 共通の操作ステップ（場のセットから選択）</strong>
+          <div className="space-y-1 text-amber-100/90 pl-1">
+            <div className="flex items-center gap-1.5">
+              <span className="w-4 h-4 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center text-[9px] shrink-0">1</span>
+              <span><strong>場のセットをタップ</strong>（使える手札カードが浮遊し、🟢/🟧バッジが出現）</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-4 h-4 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center text-[9px] shrink-0">2</span>
+              <span>浮き上がった手札から<strong>出したいカードを1枚タップ</strong></span>
+            </div>
+          </div>
+        </div>
 
-        <div className="bg-[#26180f] p-2.5 rounded-xl border border-cyan-500/80 shadow-inner space-y-1">
-          <strong className="text-cyan-300 text-xs block">💡 入れ替えの3ステップ</strong>
-          <ol className="list-decimal pl-4 space-y-1 text-amber-100 text-[11px]">
-            <li>手札から場に出したいカードを<strong className="text-cyan-300">1枚タップ</strong></li>
-            <li>場にある和音セットを<strong className="text-cyan-300">タップして選択</strong>（金枠で囲まれます）</li>
-            <li>条件を満たすと「🔄 ○○にアレンジ (○○回収)」バッジが表示され、<strong className="text-cyan-300 font-black">「入れ替え」ボタン（水色）</strong>が点灯！</li>
-            <li>ボタンを押すと、場の古いカードが上へ押し出され、手札に回収されます</li>
-          </ol>
+        {/* 2大アクションの分岐ボタン */}
+        <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+          <div className="bg-[#1b261b] p-2 rounded-xl border border-emerald-500/60 space-y-1 text-[10px] shadow-inner">
+            <span className="font-black text-emerald-300 block">🟢 付け札（緑ボタン）</span>
+            <p className="text-emerald-100/90 leading-tight">
+              ③ 緑の<strong>「付け札」</strong>を押すと、選んだカードが場のセットに追加され、<strong>手札が1枚減ります</strong>（例: 3和音 ➔ CM7等へ進化）。
+            </p>
+          </div>
+
+          <div className="bg-[#2b170c] p-2 rounded-xl border border-orange-500/60 space-y-1 text-[10px] shadow-inner">
+            <span className="font-black text-orange-300 block">🟧 入れ替え（橙ボタン）</span>
+            <p className="text-orange-100/90 leading-tight">
+              ③ 橙の<strong>「入れ替え」</strong>を押すと、手札のカードが場に入って新たな和音に変化し、<strong>押し出された場の古いカードが手札に回収</strong>されます。
+            </p>
+          </div>
+        </div>
+
+        {/* 入れ替えで起こることの具体例 */}
+        <div className="bg-[#140a05] p-1.5 rounded-lg border border-orange-900/80 text-[9px] text-orange-200/90 leading-tight">
+          <strong className="text-orange-300 block mb-0.5">例：場の Cコード [ド・ミ・ソ] に 手札の [シ] を入れ替えた場合</strong>
+          場は新たな <strong>Emコード [ミ・ソ・シ]</strong> に変化し、押し出された <strong>[ド] が自分の手札に加わります</strong>（1手番1回まで）。
         </div>
       </div>
     )
   },
   {
-    title: "5. ポン・チーの操作方法",
+    title: "4. ポン・チー（割り込み）の操作",
     content: (
-      <div className="space-y-2.5 text-xs text-amber-100/90 leading-relaxed select-none">
-        <p>他人がカードを捨てた瞬間に割り込む操作方法です。</p>
+      <div className="space-y-2 text-xs text-amber-100/90 leading-relaxed select-none">
+        <div className="bg-[#24150c] p-2.5 rounded-xl border border-amber-900/80 space-y-1.5 shadow-inner text-[10.5px]">
+          <div className="flex items-center gap-1.5">
+            <span className="w-4 h-4 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center text-[9px] shrink-0">1</span>
+            <span>他人の捨て札で鳴ける時、手札の使えるカードが自動で浮き上がります</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-4 h-4 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center text-[9px] shrink-0">2</span>
+            <span>カードをタップすると使うペアが選択（再タップで別ペアに切替）</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-4 h-4 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center text-[9px] shrink-0">3</span>
+            <span><strong>「ポン」</strong>または<strong>「チー」</strong>ボタンを押して割り込み（不要なら「パス」）</span>
+          </div>
+        </div>
+      </div>
+    )
+  },
+  {
+    title: "5. アシストナビ機能の見方",
+    content: (
+      <div className="space-y-2 text-xs text-amber-100/90 leading-relaxed select-none">
+        <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/80 space-y-1.5 shadow-inner text-[10px]">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-7 rounded border border-amber-400 bg-amber-100 text-amber-950 font-bold flex items-center justify-center text-[9px] shadow-xs">光沢</div>
+            <span><strong>完成形カード</strong>：選ぶと即役が揃うカードが麻雀牌風の光沢シマーで光ります</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-7 rounded border border-purple-400 bg-purple-100 text-purple-950 font-bold flex items-center justify-center text-[9px] shadow-xs">紫枠</div>
+            <span><strong>2枚ペアカード</strong>：あと1枚で役になるペアが紫枠で光ります</span>
+          </div>
+        </div>
 
-        <ol className="list-decimal pl-4 space-y-1.5 bg-[#26180f] p-2.5 rounded-lg border border-amber-900/60 shadow-inner text-[11px]">
-          <li>ポン・チーができる時、手札の使えるカードが持ち上がります</li>
-          <li>使えるカードをタップすると、鳴きに使う2枚のペアが自動で選ばれます（同じカードを再度タップで別のペアに切り替え）</li>
-          <li>右下の<strong className="text-amber-300">「ポン」</strong>または<strong className="text-amber-300">「チー」</strong>ボタンを押して割り込みます（不要なら「パス」）</li>
-        </ol>
+        <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/80 space-y-1 shadow-inner text-[10px]">
+          <span className="text-amber-300 font-bold block">場のセット選択時の判別丸バッジ（カード右上）</span>
+          <div className="grid grid-cols-3 gap-1 text-center pt-0.5">
+            <div className="bg-[#120a05] p-1 rounded border border-emerald-950">
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white mb-0.5" /><br/>
+              <span className="text-emerald-300 font-bold">🟢 付け札</span>
+            </div>
+            <div className="bg-[#120a05] p-1 rounded border border-orange-950">
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-orange-500 border border-white mb-0.5" /><br/>
+              <span className="text-orange-300 font-bold">🟧 入れ替え</span>
+            </div>
+            <div className="bg-[#120a05] p-1 rounded border border-amber-950">
+              <span className="inline-flex gap-0.5 mb-0.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white" />
+                <span className="w-2.5 h-2.5 rounded-full bg-orange-500 border border-white" />
+              </span><br/>
+              <span className="text-amber-200 font-bold">🟢 🟧 両方可能</span>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
@@ -271,7 +619,7 @@ export const RuleModal: React.FC<RuleModalProps> = ({ isOpen, onClose }) => {
         <div className="flex justify-between items-center mb-2 border-b border-[#382315] pb-1.5 shrink-0">
           <h3 className="text-sm font-black text-amber-100 flex items-center gap-1.5">
             <BookOpen className="w-4 h-4 text-amber-400" />
-            <span>遊び方・ガイド</span>
+            <span>遊び方・マニュアル</span>
           </h3>
           <button 
             onClick={onClose} 
@@ -292,7 +640,7 @@ export const RuleModal: React.FC<RuleModalProps> = ({ isOpen, onClose }) => {
             }`}
           >
             <BookOpen className="w-3.5 h-3.5" />
-            <span>📜 ルール説明</span>
+            <span>ルール・役の作り方</span>
           </button>
 
           <button
@@ -304,12 +652,15 @@ export const RuleModal: React.FC<RuleModalProps> = ({ isOpen, onClose }) => {
             }`}
           >
             <Gamepad2 className="w-3.5 h-3.5" />
-            <span>🎮 操作ガイド</span>
+            <span>操作・画面ガイド</span>
           </button>
         </div>
 
-        {/* 視覚的スワイプ・プログレスバー（各ステップの進捗が一目でわかるバー） */}
-        <div className="grid grid-cols-4 gap-1.5 mb-2.5 shrink-0 px-0.5">
+        {/* 視覚的スワイプ・プログレスバー */}
+        <div 
+          className="grid gap-1 mb-2.5 shrink-0 px-0.5" 
+          style={{ gridTemplateColumns: `repeat(${currentData.length}, minmax(0, 1fr))` }}
+        >
           {currentData.map((_, idx) => (
             <button
               key={idx}
@@ -326,9 +677,8 @@ export const RuleModal: React.FC<RuleModalProps> = ({ isOpen, onClose }) => {
           ))}
         </div>
         
-        {/* スワイプ可能コンテンツ領域（左右に控えめなナビゲーションシェブロン） */}
+        {/* スワイプ可能コンテンツ領域 */}
         <div className="relative flex-1 min-h-0 flex items-stretch">
-          {/* 左スワイプ・ナビゲーション矢印（視覚的手がかり） */}
           {page > 0 && (
             <button
               onClick={() => setPage(p => p - 1)}
@@ -339,7 +689,6 @@ export const RuleModal: React.FC<RuleModalProps> = ({ isOpen, onClose }) => {
             </button>
           )}
 
-          {/* メインコンテンツ（タッチ・ドラッグスワイプ可能） */}
           <div 
             ref={contentRef}
             onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
@@ -367,7 +716,6 @@ export const RuleModal: React.FC<RuleModalProps> = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          {/* 右スワイプ・ナビゲーション矢印（視覚的手がかり） */}
           {page < currentData.length - 1 && (
             <button
               onClick={() => setPage(p => p + 1)}
@@ -381,20 +729,18 @@ export const RuleModal: React.FC<RuleModalProps> = ({ isOpen, onClose }) => {
 
         {/* 固定フッター（ドットインジケーター ＆ 閉じるボタン） */}
         <div className="mt-2.5 flex items-center justify-between gap-3 pt-2 border-t border-[#382315] shrink-0">
-          
-          {/* ドットインジケーター ＆ ページ数 */}
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-black text-amber-400/80 tracking-wider">
               {page + 1} / {currentData.length}
             </span>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
               {currentData.map((_, idx) => (
                 <button
                   key={idx}
                   onClick={() => setPage(idx)}
                   className={`transition-all rounded-full ${
                     page === idx 
-                      ? 'w-4 h-1.5 bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.6)]' 
+                      ? 'w-3.5 h-1.5 bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.6)]' 
                       : 'w-1.5 h-1.5 bg-[#3f2717] hover:bg-amber-700/60'
                   }`}
                   title={`${idx + 1}ページ目`}
@@ -403,7 +749,6 @@ export const RuleModal: React.FC<RuleModalProps> = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          {/* 閉じるボタン */}
           <button 
             onClick={onClose} 
             className="px-6 py-1.5 bg-gradient-to-b from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 active:scale-98 text-slate-950 font-black rounded-xl text-xs shadow-md border border-amber-200 transition"

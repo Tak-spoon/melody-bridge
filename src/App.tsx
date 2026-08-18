@@ -17,7 +17,6 @@ import { Hand } from './components/Hand';
 import { Card as CardComponent } from './components/Card';
 import { CutIn } from './components/CutIn';
 import { WinEffect } from './components/WinEffect';
-import { FlyingDrawCard } from './components/FlyingDrawCard';
 import { RuleModal } from './components/Modals/RuleModal';
 import { OptionModal, BotSpeed, BotCountOption } from './components/Modals/OptionModal';
 import { DiscardModal } from './components/Modals/DiscardModal';
