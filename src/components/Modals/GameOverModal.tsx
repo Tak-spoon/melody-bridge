@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, History, RotateCcw, ChevronRight, Crown, Medal } from 'lucide-react';
+import { Trophy, History, RotateCcw, ChevronRight, Crown } from 'lucide-react';
 import { Player } from '../../types/game';
+import { calculateRoundScore } from '../../utils/stats';
 
 interface GameOverModalProps {
   isOpen: boolean;
@@ -37,21 +38,34 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
 
   const isFinalRound = round === 4;
 
-  // 最終順位（スコアが低い順にソート）
+  // 最終順位（得点が高い順にソート）
   const rankedPlayers = players.map((p, idx) => ({
     player: p,
     score: scores[idx],
     idx
-  })).sort((a, b) => a.score - b.score);
+  })).sort((a, b) => b.score - a.score);
+
+  // ラウンド順位の算出 (手札の残りが少ない順。勝者が1位)
+  const winner = players.find(p => p.hand.length === 0);
+  let roundRankOrder: number[] = [];
+  if (winner) {
+    const rem = [0, 1, 2, 3].filter(p => p !== winner.id);
+    rem.sort((a, b) => players[a].hand.length - players[b].hand.length);
+    roundRankOrder = [winner.id, ...rem];
+  } else {
+    const allP = [0, 1, 2, 3];
+    allP.sort((a, b) => players[a].hand.length - players[b].hand.length);
+    roundRankOrder = allP;
+  }
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center z-[70] p-4">
-      <div className="bg-[#180f09] rounded-2xl p-5 max-w-xs w-full text-center shadow-[0_10px_40px_rgba(0,0,0,0.85)] border-2 border-amber-500/70 animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center z-[70] p-2.5">
+      <div className="bg-[#180f09] rounded-2xl p-3.5 max-w-sm w-full text-center shadow-[0_10px_40px_rgba(0,0,0,0.85)] border-2 border-amber-500/70 animate-in fade-in zoom-in-95 duration-200">
         
         {/* アイコンヘッダー */}
-        <div className="flex justify-center mb-2">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-b from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 shadow-md border-2 border-amber-200">
-            {showFinalStandings ? <Crown className="w-6 h-6 animate-bounce" /> : <Trophy className="w-6 h-6" />}
+        <div className="flex justify-center mb-1.5">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-b from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 shadow-md border-2 border-amber-200">
+            {showFinalStandings ? <Crown className="w-5 h-5 animate-bounce" /> : <Trophy className="w-5 h-5" />}
           </div>
         </div>
 
@@ -60,52 +74,83 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
         {/* ------------------------------------------------------------- */}
         {!showFinalStandings && (
           <>
-            <h2 className="text-lg font-black text-amber-100 mb-1">
+            <h2 className="text-base font-black text-amber-100 mb-0.5">
               第{round}ラウンド 結果
             </h2>
-            <p className="text-xs font-black text-amber-200 mb-3.5 bg-[#2a1a0f] py-1.5 px-2.5 rounded-lg border border-amber-500/50 shadow-inner">
+            <p className="text-[11px] font-black text-amber-200 mb-2.5 bg-[#2a1a0f] py-1 px-2 rounded-lg border border-amber-500/50 shadow-inner">
               {message}
             </p>
             
-            {/* スコア一覧（今回変動と累計のグリッド整列） */}
-            <div className="bg-[#22160d] p-3 rounded-xl mb-3.5 text-left border border-amber-900/60 text-xs font-bold shadow-inner">
-              {/* ヘッダー行 */}
-              <div className="grid grid-cols-[1fr_52px_16px_52px] items-center text-[10px] text-amber-400/70 font-bold mb-1.5 px-2.5">
-                <span>プレイヤー</span>
-                <span className="text-center">今回変動</span>
-                <span></span>
-                <span className="text-right">累計</span>
-              </div>
+            {/* スコア詳細 内訳テーブル（スマホ縦画面360px完全収まり・役と付け札を別々に明記） */}
+            <div className="bg-[#22160d] p-1.5 rounded-xl mb-3 text-left border border-amber-900/60 shadow-inner">
+              <table className="w-full text-left text-[10px] border-collapse">
+                <thead>
+                  <tr className="text-[9px] text-amber-400/90 border-b border-amber-900/60 pb-1">
+                    <th className="py-1 font-bold">対戦者</th>
+                    <th className="py-1 font-bold text-center">着順</th>
+                    <th className="py-1 font-bold text-center text-amber-400">着順点</th>
+                    <th className="py-1 font-bold text-center text-emerald-400">役</th>
+                    <th className="py-1 font-bold text-center text-teal-400">付け札</th>
+                    <th className="py-1 font-bold text-center text-emerald-300">今回</th>
+                    <th className="py-1 font-bold text-right text-amber-200">累計</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-amber-950/60 font-bold">
+                  {players.map((p, idx) => {
+                    const rPos = roundRankOrder.indexOf(idx);
+                    const melds = p.actions?.melds || 0;
+                    const adds = p.actions?.adds || 0;
+                    const detail = calculateRoundScore(rPos, melds, adds);
+                    const rank = rPos + 1;
 
-              {/* 各プレイヤー行 */}
-              <div className="space-y-1.5">
-                {players.map((p, idx) => {
-                  const roundPenalty = p.hand.length;
-                  return (
-                    <div 
-                      key={p.id} 
-                      className="grid grid-cols-[1fr_52px_16px_52px] items-center px-2.5 py-1.5 rounded-lg text-amber-200/90 bg-[#190f09] border border-amber-900/50"
-                    >
-                      <span className="truncate">{p.name}</span>
+                    return (
+                      <tr key={p.id} className="hover:bg-amber-950/30">
+                        {/* 1. 対戦者名 */}
+                        <td className="py-1 font-bold text-amber-100 truncate max-w-[55px] text-[10px]">
+                          {p.name}
+                        </td>
 
-                      {/* 今ラウンドでの変動点 */}
-                      <span className={`text-[11px] font-bold text-center ${
-                        roundPenalty === 0 ? 'text-emerald-400' : 'text-rose-400/90'
-                      }`}>
-                        {roundPenalty === 0 ? '±0' : `+${roundPenalty}`}
-                      </span>
+                        {/* 2. 着順バッジ */}
+                        <td className="py-1 text-center">
+                          <span className={`text-[8.5px] font-black px-1 py-0.2 rounded shadow-xs ${
+                            rank === 1 ? 'bg-amber-400 text-slate-950 font-black' :
+                            rank === 2 ? 'bg-slate-700 text-slate-200' :
+                            rank === 3 ? 'bg-amber-900 text-amber-200' :
+                            'bg-slate-900 text-slate-400'
+                          }`}>
+                            {rank}着
+                          </span>
+                        </td>
 
-                      {/* 矢印 */}
-                      <span className="text-amber-500/40 text-[10px] text-center">→</span>
+                        {/* 3. 着順点 */}
+                        <td className="py-1 text-center text-amber-400 font-bold text-[10px]">
+                          +{detail.rankPoints}
+                        </td>
 
-                      {/* 累計トータルスコア */}
-                      <span className="text-xs text-right text-amber-100 font-bold">
-                        {scores[idx]} pt
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+                        {/* 4. 役加点 */}
+                        <td className="py-1 text-center text-emerald-400/90 font-bold text-[10px]">
+                          +{detail.meldBonus}
+                        </td>
+
+                        {/* 5. 付け札加点 */}
+                        <td className="py-1 text-center text-teal-400/90 font-bold text-[10px]">
+                          +{detail.addBonus}
+                        </td>
+
+                        {/* 6. 今回獲得合計 */}
+                        <td className="py-1 text-center text-emerald-300 font-black text-[10px]">
+                          +{detail.totalRoundScore}pt
+                        </td>
+
+                        {/* 7. 累計スコア */}
+                        <td className="py-1 text-right text-amber-100 font-black text-[10px]">
+                          {scores[idx]}pt
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -147,7 +192,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
               全4ラウンドの対戦が終了しました！
             </p>
             
-            {/* 順位ランキング表 */}
+            {/* 順位ランキング表（最高得点順） */}
             <div className="bg-[#22160d] p-3 rounded-xl mb-3.5 text-left border border-amber-900/60 text-xs font-bold shadow-inner space-y-2">
               {rankedPlayers.map((item, rankIdx) => {
                 const rank = rankIdx + 1;
@@ -211,3 +256,4 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
     </div>
   );
 };
+

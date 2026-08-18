@@ -1,4 +1,4 @@
-import { Card, GameState, InterruptCandidate, Player } from '../types/game';
+import { Card, GameState, InterruptCandidate, Player, RoundScoreRecord } from '../types/game';
 import { getChordInterpretation, getScaleInterpretation } from './musicTheory';
 
 /**
@@ -34,7 +34,7 @@ export const sortHand = (hand: Card[]): Card[] => {
 /**
  * 新しいラウンド（初期状態）をセットアップします。
  */
-export const setupRound = (scores: number[] = [0, 0, 0, 0], roundNum: number = 1): GameState => {
+export const setupRound = (scores: number[] = [0, 0, 0, 0], roundNum: number = 1, roundHistory: RoundScoreRecord[] = []): GameState => {
   const deck = createDeck();
   const defaultActions = { melds: 0, adds: 0, swaps: 0, pon: 0, chii: 0, turns: 0 };
   const players: Player[] = [
@@ -74,7 +74,8 @@ export const setupRound = (scores: number[] = [0, 0, 0, 0], roundNum: number = 1
       { player: 'システム', text: `[R${roundNum}] ラウンド開始。先手: ${players[startingTurn].name}` }
     ],
     actionCount: 0,
-    hasSwappedThisTurn: false
+    hasSwappedThisTurn: false,
+    roundHistory: [...roundHistory]
   };
 };
 
@@ -180,16 +181,51 @@ export const addLog = (state: GameState, playerName: string, text: string): void
   state.logs = [...state.logs.slice(-49), entry];
 };
 
+import { calculateRoundScore } from './stats';
+
 /**
- * ラウンドを終了し、スコア（残った手札枚数）を加算します。
+ * ラウンドを終了し、新スコア計算方式（着順点 ＋ 手札削減成果）によりスコアを加算します。
  */
 export const finishRound = (state: GameState, reasonMsg: string): void => {
   state.roundOver = true;
-  const newScores = state.scores.map((score, idx) => {
-    const handCount = state.players[idx].hand.length;
-    return score + handCount;
+  
+  // ラウンド順位の確定: 勝者が1位、それ以外は残った手札の少ない順
+  let rankOrder: number[] = [];
+  if (state.winner !== null) {
+    const rem = [0, 1, 2, 3].filter(p => p !== state.winner);
+    rem.sort((a, b) => state.players[a].hand.length - state.players[b].hand.length);
+    rankOrder = [state.winner, ...rem];
+  } else {
+    const allP = [0, 1, 2, 3];
+    allP.sort((a, b) => state.players[a].hand.length - state.players[b].hand.length);
+    rankOrder = allP;
+  }
+
+  // プレイヤーごとのこのラウンドの得点を計算
+  const roundDetails = [0, 1, 2, 3].map(pId => {
+    const rPos = rankOrder.indexOf(pId);
+    const melds = state.players[pId].actions?.melds || 0;
+    const adds = state.players[pId].actions?.adds || 0;
+    return calculateRoundScore(rPos, melds, adds);
   });
-  state.scores = newScores;
+
+  const roundScores = roundDetails.map(d => d.totalRoundScore);
+  state.scores = state.scores.map((score, idx) => score + roundScores[idx]);
+
+  const currentHistory = state.roundHistory || [];
+  if (!currentHistory.some(h => h.round === state.round)) {
+    state.roundHistory = [
+      ...currentHistory,
+      {
+        round: state.round,
+        winnerId: state.winner,
+        roundScores,
+        accumulatedScores: [...state.scores],
+        ranks: rankOrder,
+      }
+    ];
+  }
+
   state.message = reasonMsg;
   addLog(state, 'システム', `${reasonMsg} ラウンド終了`);
 };
@@ -207,3 +243,4 @@ export const checkWinCondition = (state: GameState): boolean => {
   }
   return false;
 };
+

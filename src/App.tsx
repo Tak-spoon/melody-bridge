@@ -229,7 +229,12 @@ export default function App() {
     
     setGameState(prev => {
       if (prev.roundOver) return prev;
-      const s = { ...prev, logs: [...prev.logs], scores: [...prev.scores] };
+      const s = { 
+        ...prev, 
+        logs: [...prev.logs], 
+        scores: [...prev.scores],
+        roundHistory: [...(prev.roundHistory || [])]
+      };
       s.winner = winnerId;
       finishRound(s, reasonMsg);
       return s;
@@ -1108,11 +1113,11 @@ export default function App() {
       hasRecordedStatsRef.current = false;
       setWinEffectName(null);
       setShowGameOverModal(false);
-      setGameState(setupRound(gameState.scores, gameState.round + 1));
+      setGameState(setupRound(gameState.scores, gameState.round + 1, gameState.roundHistory || []));
       setSelectedHand([]);
       setSelectedMeld(null);
     }
-  }, [gameState.round, gameState.scores]);
+  }, [gameState.round, gameState.scores, gameState.roundHistory]);
 
   const restartGame = useCallback(() => {
     isRoundEndingRef.current = false;

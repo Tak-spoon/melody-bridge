@@ -225,21 +225,34 @@ const RULES_DATA: RuleSection[] = [
           </ul>
         </div>
 
-        <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/80 space-y-1 shadow-inner text-[10.5px]">
-          <span className="text-amber-300 font-bold block">ペナルティ失点計算</span>
-          <p className="text-amber-200/90">
-            手札に残った枚数がそのまま「失点」となります（アガった人は0点）。
+        <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/80 space-y-1.5 shadow-inner text-[10.5px]">
+          <span className="text-amber-300 font-bold block">ラウンド獲得ポイント計算方程式</span>
+          <p className="text-amber-200/90 font-bold text-amber-300">
+            【ラウンド獲得点】＝ 着順点 ＋ 手札削減成果ボーナス
           </p>
+          <div className="grid grid-cols-2 gap-1.5 text-[10px] pt-1">
+            <div className="bg-[#180f09] p-1.5 rounded border border-amber-950/60">
+              <span className="text-amber-400 font-bold block">🥇 着順点（固定）</span>
+              1位: <strong>+40pt</strong> / 2位: <strong>+15pt</strong><br />
+              3位: <strong>+5pt</strong> / 4位: <strong>0pt</strong>
+            </div>
+            <div className="bg-[#180f09] p-1.5 rounded border border-amber-950/60">
+              <span className="text-emerald-400 font-bold block">🎵 手札削減成果加点</span>
+              ・役出し: 1つにつき <strong>+5pt</strong><br />
+              ・付け札: 1枚につき <strong>+3pt</strong>
+            </div>
+          </div>
         </div>
 
         <div className="bg-gradient-to-r from-amber-950 via-[#3a2012] to-amber-950 p-2 rounded-xl border border-amber-500/60 text-center shadow-md">
           <p className="font-black text-amber-300 text-xs">
-            全4ラウンド終了時、合計失点が最も少ない人が総合優勝！
+            全4ラウンド終了時、獲得ポイントが最も多いプレイヤーが総合優勝！
           </p>
         </div>
       </div>
     )
-  },
+  }
+,
   {
     title: "6. 基本3和音一覧（全7種）",
     content: (

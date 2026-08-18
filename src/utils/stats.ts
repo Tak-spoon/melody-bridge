@@ -1,14 +1,17 @@
 import { Card, GameState, Meld } from '../types/game';
 import { getChordSymbol, getChordInterpretation, getScaleInterpretation, tryAddCardToMeld, trySwapCardInMeld } from './musicTheory';
-import { createDeck, getCombinations, getValidPonCombs, getValidChiiCombs } from './gameLogic';
+import { createDeck, sortHand, getCombinations, getValidPonCombs, getValidChiiCombs } from './gameLogic';
 
 export interface GameStats {
   totalRounds: number;
+  totalMatches?: number; // 完了した全1試合(4局)の総数
   wins: [number, number, number, number]; // [Player0, CPU1, CPU2, CPU3]
   draws: number;
   totalTurns: number;
   turnsList: number[]; // 各ラウンドの手数
-  totalPenalties: [number, number, number, number]; // プレイヤー別累計失点
+  totalScores: [number, number, number, number]; // プレイヤー別累計獲得ポイント
+  totalPenalties?: [number, number, number, number]; // 旧仕様後換性用
+  rankTransitions?: number[][]; // [R1順位(0-3)][最終順位(0-3)] の遷移カウント (4x4)
   meldsCount: {
     total: number;
     chord: number;
@@ -32,11 +35,19 @@ const STATS_STORAGE_KEY = 'mb_game_statistics_v1';
 
 export const getDefaultStats = (): GameStats => ({
   totalRounds: 0,
+  totalMatches: 0,
   wins: [0, 0, 0, 0],
   draws: 0,
   totalTurns: 0,
   turnsList: [],
+  totalScores: [0, 0, 0, 0],
   totalPenalties: [0, 0, 0, 0],
+  rankTransitions: [
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+  ],
   meldsCount: {
     total: 0,
     chord: 0,
@@ -134,17 +145,38 @@ export const recordGameRound = (
   state: GameState,
   currentStats: GameStats
 ): GameStats => {
-  const defaultActions = { melds: 0, adds: 0, pon: 0, chii: 0 };
+  // ラウンド順位の確定 (勝者が1位、残りは手札の少なさ順)
+  let rankOrder: number[] = [];
+  if (state.winner !== null) {
+    const rem = [0, 1, 2, 3].filter(p => p !== state.winner);
+    rem.sort((a, b) => state.players[a].hand.length - state.players[b].hand.length);
+    rankOrder = [state.winner, ...rem];
+  } else {
+    const allP = [0, 1, 2, 3];
+    allP.sort((a, b) => state.players[a].hand.length - state.players[b].hand.length);
+    rankOrder = allP;
+  }
+
+  // プレイヤーごとのこのラウンドの得点を計算
+  const roundScores = [0, 1, 2, 3].map(pId => {
+    const rPos = rankOrder.indexOf(pId);
+    const melds = state.players[pId]?.actions?.melds || 0;
+    const adds = state.players[pId]?.actions?.adds || 0;
+    return calculateRoundScore(rPos, melds, adds).totalRoundScore;
+  });
+
+  const prevScores = currentStats.totalScores || currentStats.totalPenalties || [0, 0, 0, 0];
+
   const updated: GameStats = {
     ...currentStats,
     totalRounds: currentStats.totalRounds + 1,
     totalTurns: currentStats.totalTurns + state.actionCount,
-    turnsList: [...currentStats.turnsList.slice(-199), state.actionCount], // 直近200件保持
-    totalPenalties: [
-      currentStats.totalPenalties[0] + state.players[0].hand.length,
-      currentStats.totalPenalties[1] + state.players[1].hand.length,
-      currentStats.totalPenalties[2] + state.players[2].hand.length,
-      currentStats.totalPenalties[3] + state.players[3].hand.length,
+    turnsList: [...currentStats.turnsList.slice(-199), state.actionCount],
+    totalScores: [
+      prevScores[0] + roundScores[0],
+      prevScores[1] + roundScores[1],
+      prevScores[2] + roundScores[2],
+      prevScores[3] + roundScores[3],
     ],
     meldsCount: {
       ...currentStats.meldsCount,
@@ -206,6 +238,29 @@ export const recordGameRound = (
     }
   }
 
+  // 1試合(全4ラウンド)が完了した際の順位推移 (rankTransitions) および試合数 (totalMatches) の記録
+  if (state.round === 4 && state.roundHistory && state.roundHistory.length === 4) {
+    updated.totalMatches = (currentStats.totalMatches || 0) + 1;
+    const currentTransitions = currentStats.rankTransitions || [
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+    ];
+    updated.rankTransitions = currentTransitions.map(r => [...r]);
+
+    const r1Record = state.roundHistory[0];
+    const finalRanks = [0, 1, 2, 3].sort((a, b) => state.scores[b] - state.scores[a]);
+
+    for (let p = 0; p < 4; p++) {
+      const r1Rank = r1Record.ranks.indexOf(p);
+      const finalRank = finalRanks.indexOf(p);
+      if (r1Rank >= 0 && finalRank >= 0) {
+        updated.rankTransitions[r1Rank][finalRank] += 1;
+      }
+    }
+  }
+
   saveStats(updated);
   return updated;
 };
@@ -235,6 +290,18 @@ export const runBatchSimulation = (
     ],
   };
 
+  if (!updated.rankTransitions) {
+    updated.rankTransitions = [
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+    ];
+  }
+
+  let matchR1Ranks: number[] | null = null;
+  let matchScores = [0, 0, 0, 0];
+
   const PLAYERS = 4;
   const HAND_SIZE = 7;
 
@@ -249,11 +316,17 @@ export const runBatchSimulation = (
       const pIdx = (startPlayer + i) % PLAYERS;
       hands[pIdx].push(deck.pop()!);
     }
+    
+    for (let p = 0; p < 4; p++) {
+      hands[p] = sortHand(hands[p]);
+    }
 
     const field: Meld[] = [];
     let turn = startPlayer; // 親からスタート
     let totalTurns = 0;
     let roundWinner: number | null = null;
+    const roundMelds = [0, 0, 0, 0];
+    const roundAdds = [0, 0, 0, 0];
     const MAX_TURNS = 200;
 
     while (totalTurns < MAX_TURNS) {
@@ -263,6 +336,7 @@ export const runBatchSimulation = (
       // ドロー
       if (deck.length > 0) {
         hand.push(deck.pop()!);
+        hands[turn] = sortHand(hand);
       }
 
       // 役出し
@@ -279,6 +353,7 @@ export const runBatchSimulation = (
               updated.meldsCount.total += 1;
               updated.meldsCount.scale += 1;
               updated.playerActions[turn].melds += 1;
+              roundMelds[turn] += 1;
               hasMeldedList[turn] = true;
               for (const c of comb) {
                 const idx = hand.findIndex(h => h.id === c.id);
@@ -294,6 +369,7 @@ export const runBatchSimulation = (
                 updated.meldsCount.total += 1;
                 updated.meldsCount.chord += 1;
                 updated.playerActions[turn].melds += 1;
+                roundMelds[turn] += 1;
                 hasMeldedList[turn] = true;
                 const sym = getChordSymbol(chordSeq);
                 updated.meldsCount.chordTypes[sym] = (updated.meldsCount.chordTypes[sym] || 0) + 1;
@@ -326,6 +402,7 @@ export const runBatchSimulation = (
               meld.cards = newSeq;
               hand.splice(ci, 1);
               updated.playerActions[turn].adds += 1;
+              roundAdds[turn] += 1;
               added = true;
               break;
             }
@@ -391,6 +468,7 @@ export const runBatchSimulation = (
             updated.meldsCount.chordTypes[sym] = (updated.meldsCount.chordTypes[sym] || 0) + 1;
             updated.interruptsCount.pon += 1;
             updated.playerActions[pId].pon += 1;
+            roundMelds[pId] += 1;
             hasMeldedList[pId] = true;
 
             for (const c of pairObjs) {
@@ -431,6 +509,7 @@ export const runBatchSimulation = (
             updated.meldsCount.scale += 1;
             updated.interruptsCount.chii += 1;
             updated.playerActions[nextPlayer].chii += 1;
+            roundMelds[nextPlayer] += 1;
             hasMeldedList[nextPlayer] = true;
 
             for (const c of pairObjs) {
@@ -468,8 +547,46 @@ export const runBatchSimulation = (
     updated.turnsList.push(totalTurns);
     if (updated.turnsList.length > 200) updated.turnsList.shift();
 
+    // ラウンド順位の確定 (勝者が1位、残りは手札の少なさ順)
+    let rankOrder: number[] = [];
+    if (roundWinner !== null) {
+      const rem = [0, 1, 2, 3].filter(p => p !== roundWinner);
+      rem.sort((a, b) => hands[a].length - hands[b].length);
+      rankOrder = [roundWinner, ...rem];
+    } else {
+      const allP = [0, 1, 2, 3];
+      allP.sort((a, b) => hands[a].length - hands[b].length);
+      rankOrder = allP;
+    }
+
+    if (!updated.totalScores) updated.totalScores = [0, 0, 0, 0];
+
+    const currentRoundScores = [0, 0, 0, 0];
     for (let p = 0; p < 4; p++) {
-      updated.totalPenalties[p] += hands[p].length;
+      const rPos = rankOrder.indexOf(p);
+      // 着順点 + 当該ラウンドでアガリ/付け札等の成果スコアを加算（新得点体系）
+      const detail = calculateRoundScore(rPos, roundMelds[p], roundAdds[p]);
+      updated.totalScores[p] += detail.totalRoundScore;
+      currentRoundScores[p] = detail.totalRoundScore;
+    }
+    
+    if (!matchR1Ranks) matchR1Ranks = [...rankOrder];
+    matchScores = matchScores.map((sc, p) => sc + currentRoundScores[p]);
+
+    // 4ラウンド(1試合)終了時に「順位推移」マトリクスに加算
+    if ((r + 1) % 4 === 0) {
+      const finalRanks = [0, 1, 2, 3].sort((a, b) => matchScores[b] - matchScores[a]);
+      if (!updated.totalMatches) updated.totalMatches = 0;
+      updated.totalMatches += 1;
+
+      for (let p = 0; p < 4; p++) {
+        const r1Rank = matchR1Ranks.indexOf(p);
+        const finalRank = finalRanks.indexOf(p);
+        updated.rankTransitions[r1Rank][finalRank] += 1;
+      }
+
+      matchR1Ranks = null;
+      matchScores = [0, 0, 0, 0];
     }
 
     if (roundWinner !== null) {
@@ -482,3 +599,44 @@ export const runBatchSimulation = (
   saveStats(updated);
   return updated;
 };
+
+/**
+ * 決定版スコア方程式の各種定数
+ */
+export const RANK_POINTS = [40, 15, 5, 0] as const;
+export const MELD_BONUS = 5;
+export const ADD_BONUS = 3;
+
+export interface RoundScoreDetail {
+  rankPosition: number; // 0=1位, 1=2位, 2=3位, 3=4位
+  rankPoints: number;   // 40, 15, 5, 0
+  meldBonus: number;    // 役出し数 × 5pt
+  addBonus: number;     // 付け札数 × 3pt
+  totalBonus: number;   // meldBonus + addBonus
+  totalRoundScore: number; // rankPoints + totalBonus
+}
+
+/**
+ * 1ラウンドの各種実績から得点を計算します。
+ */
+export const calculateRoundScore = (
+  rankPosition: number,
+  meldsCount: number = 0,
+  addsCount: number = 0
+): RoundScoreDetail => {
+  const rankPoints = RANK_POINTS[rankPosition] ?? 0;
+  const meldBonus = meldsCount * MELD_BONUS;
+  const addBonus = addsCount * ADD_BONUS;
+  const totalBonus = meldBonus + addBonus;
+  const totalRoundScore = rankPoints + totalBonus;
+
+  return {
+    rankPosition,
+    rankPoints,
+    meldBonus,
+    addBonus,
+    totalBonus,
+    totalRoundScore,
+  };
+};
+

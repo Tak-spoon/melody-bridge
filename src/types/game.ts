@@ -68,6 +68,14 @@ export interface InterruptInfo {
 
 export type GamePhase = 'draw' | 'main' | 'interrupt';
 
+export interface RoundScoreRecord {
+  round: number;
+  winnerId: number | null;
+  roundScores: number[]; // 今ラウンドでの獲得スコア [P0, P1, P2, P3]
+  accumulatedScores: number[]; // 今ラウンド終了時の累計スコア [P0, P1, P2, P3]
+  ranks: number[]; // 各プレイヤーの今ラウンド順位 (0=1位, 1=2位...)
+}
+
 export interface GameState {
   round: number;
   scores: number[];
@@ -84,4 +92,6 @@ export interface GameState {
   logs: LogEntry[];
   actionCount: number;
   hasSwappedThisTurn?: boolean; // 今手番ですでにスワップを行ったか（無限ループ防止・1手番1回制限）
+  roundHistory?: RoundScoreRecord[]; // 全4ラウンドの推移記録
 }
+

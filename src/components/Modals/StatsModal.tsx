@@ -20,7 +20,7 @@ export const StatsModal: React.FC<StatsModalProps> = ({
   onUpdateStats,
 }) => {
   const [isSimulating, setIsSimulating] = useState(false);
-  const [activeTab, setActiveTab] = useState<'current' | 'overview' | 'players' | 'melds' | 'sim'>('current');
+  const [activeTab, setActiveTab] = useState<'current' | 'overview' | 'players' | 'transitions' | 'melds' | 'sim'>('current');
   const [isMinimized, setIsMinimized] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -58,7 +58,6 @@ export const StatsModal: React.FC<StatsModalProps> = ({
 
     posRef.current = { x: newX, y: newY };
 
-    // requestAnimationFrameでGPU描画に完全同期（もたつきゼロ）
     if (animFrameIdRef.current) cancelAnimationFrame(animFrameIdRef.current);
     animFrameIdRef.current = requestAnimationFrame(() => {
       if (modalRef.current) {
@@ -84,6 +83,10 @@ export const StatsModal: React.FC<StatsModalProps> = ({
   const winRate = totalRounds > 0 ? ((totalWins / totalRounds) * 100).toFixed(1) : '0.0';
   const drawRate = totalRounds > 0 ? ((stats.draws / totalRounds) * 100).toFixed(1) : '0.0';
   const avgTurns = totalRounds > 0 ? (stats.totalTurns / totalRounds).toFixed(1) : '0.0';
+
+  const p0Score = (stats.totalScores || stats.totalPenalties || [0, 0, 0, 0])[0];
+  const p0AvgMatchScoreVal = totalRounds > 0 ? (p0Score / totalRounds) * 4 : 0;
+  const p0AvgMatchScoreStr = p0AvgMatchScoreVal > 0 ? `+${p0AvgMatchScoreVal.toFixed(1)}` : p0AvgMatchScoreVal.toFixed(1);
 
   const playerNames = ['あなた(Bot)', 'CPU 1', 'CPU 2', 'CPU 3'];
   const playerColors = [
@@ -121,10 +124,11 @@ export const StatsModal: React.FC<StatsModalProps> = ({
 ${playerNames.map((name, i) => {
   const wins = stats.wins[i];
   const pWinRate = totalRounds > 0 ? ((wins / totalRounds) * 100).toFixed(1) : '0.0';
-  const avgPen = totalRounds > 0 ? (stats.totalPenalties[i] / totalRounds).toFixed(1) : '0.0';
+  const scoresArray = stats.totalScores || stats.totalPenalties || [0, 0, 0, 0];
+  const avgMatchScore = totalRounds > 0 ? ((scoresArray[i] / totalRounds) * 4).toFixed(1) : '0.0';
   const act = stats.playerActions?.[i] || { melds: 0, adds: 0, swaps: 0, pon: 0, chii: 0, turns: 0 };
   const avgTurnsPerP = totalRounds > 0 ? (act.turns / totalRounds).toFixed(1) : '0.0';
-  return `・${name}: ${wins}勝 (${pWinRate}%) / 平均手番: ${avgTurnsPerP}回 (累計${act.turns}回) / 平均失点: ${avgPen}点 [役出:${act.melds}, 付札:${act.adds}, 入替:${act.swaps || 0}, ポン:${act.pon}, チー:${act.chii}]`;
+  return `・${name}: ${wins}勝 (${pWinRate}%) / 平均手番: ${avgTurnsPerP}回 / 1試合平均: ${avgMatchScore} pt (4局計) [役出:${act.melds}, 付札:${act.adds}, 入替:${act.swaps || 0}, ポン:${act.pon}, チー:${act.chii}]`;
 }).join('\n')}
 
 【役・和音の内訳】
@@ -211,21 +215,21 @@ ${JSON.stringify(stats, null, 2)}`;
         ) : (
           <>
             {/* タブ切り替えバー（文字を大きく押しやすく） */}
-            <div className="grid grid-cols-5 gap-1.5 p-1 bg-[#0e0805] rounded-xl border border-amber-900/60 mb-3 shrink-0 select-none">
+            <div className="grid grid-cols-6 gap-1 p-1 bg-[#0e0805] rounded-xl border border-amber-900/60 mb-3 shrink-0 select-none text-[11px]">
               <button
                 onClick={() => setActiveTab('current')}
-                className={`py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1 ${
+                className={`py-1.5 rounded-lg font-black transition-all flex items-center justify-center gap-0.5 ${
                   activeTab === 'current'
                     ? 'bg-amber-500 text-slate-950 shadow-md'
                     : 'text-amber-300/80 hover:text-amber-100 hover:bg-[#26180f]'
                 }`}
               >
-                <Activity className="w-3.5 h-3.5" />
+                <Activity className="w-3 h-3" />
                 <span>現在局</span>
               </button>
               <button
                 onClick={() => setActiveTab('overview')}
-                className={`py-1.5 rounded-lg text-xs font-black transition-all ${
+                className={`py-1.5 rounded-lg font-black transition-all text-center ${
                   activeTab === 'overview'
                     ? 'bg-amber-500 text-slate-950 shadow-md'
                     : 'text-amber-300/80 hover:text-amber-100 hover:bg-[#26180f]'
@@ -235,7 +239,7 @@ ${JSON.stringify(stats, null, 2)}`;
               </button>
               <button
                 onClick={() => setActiveTab('players')}
-                className={`py-1.5 rounded-lg text-xs font-black transition-all ${
+                className={`py-1.5 rounded-lg font-black transition-all text-center ${
                   activeTab === 'players'
                     ? 'bg-amber-500 text-slate-950 shadow-md'
                     : 'text-amber-300/80 hover:text-amber-100 hover:bg-[#26180f]'
@@ -244,8 +248,18 @@ ${JSON.stringify(stats, null, 2)}`;
                 成績
               </button>
               <button
+                onClick={() => setActiveTab('transitions')}
+                className={`py-1.5 rounded-lg font-black transition-all text-center ${
+                  activeTab === 'transitions'
+                    ? 'bg-amber-500 text-slate-950 shadow-md'
+                    : 'text-amber-300/80 hover:text-amber-100 hover:bg-[#26180f]'
+                }`}
+              >
+                順位推移
+              </button>
+              <button
                 onClick={() => setActiveTab('melds')}
-                className={`py-1.5 rounded-lg text-xs font-black transition-all ${
+                className={`py-1.5 rounded-lg font-black transition-all text-center ${
                   activeTab === 'melds'
                     ? 'bg-amber-500 text-slate-950 shadow-md'
                     : 'text-amber-300/80 hover:text-amber-100 hover:bg-[#26180f]'
@@ -255,13 +269,13 @@ ${JSON.stringify(stats, null, 2)}`;
               </button>
               <button
                 onClick={() => setActiveTab('sim')}
-                className={`py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1 ${
+                className={`py-1.5 rounded-lg font-black transition-all text-center flex items-center justify-center gap-0.5 ${
                   activeTab === 'sim'
                     ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-md'
                     : 'text-amber-300/80 hover:text-amber-100 hover:bg-[#26180f]'
                 }`}
               >
-                <Zap className="w-3.5 h-3.5 text-amber-300" />
+                <Zap className="w-3 h-3 text-amber-300" />
                 <span>テスト</span>
               </button>
             </div>
@@ -269,17 +283,17 @@ ${JSON.stringify(stats, null, 2)}`;
             {/* コンテンツ領域（スクロール不要・見やすい表形式） */}
             <div className="select-none">
               
-              {/* 0. 現在局（Live）タブ */}
+              {/* 0. 現在試合・推移（Live Match）タブ */}
               {activeTab === 'current' && (
                 <div className="space-y-3">
                   {/* サマリーバー */}
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/60">
-                      <span className="text-[11px] text-amber-300/70 font-bold block">ラウンド</span>
-                      <span className="text-base font-black text-amber-100">Round {gameState.round}/4</span>
+                      <span className="text-[11px] text-amber-300/70 font-bold block">現在の進行</span>
+                      <span className="text-base font-black text-amber-100">第 {gameState.round} / 4 局</span>
                     </div>
                     <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/60">
-                      <span className="text-[11px] text-amber-300/70 font-bold block">完了手番数</span>
+                      <span className="text-[11px] text-amber-300/70 font-bold block">累計手番数</span>
                       <span className="text-base font-black text-amber-300">{gameState.actionCount} 手番</span>
                     </div>
                     <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/60">
@@ -288,13 +302,116 @@ ${JSON.stringify(stats, null, 2)}`;
                     </div>
                   </div>
 
-                  {/* 4人の対比テーブル（一目で全員の状況がわかる） */}
-                  <div className="bg-[#24150c] p-2.5 rounded-xl border border-amber-900/60">
+                  {/* 🏆 1試合（全4ラウンド）順位・スコア推移テーブル */}
+                  <div className="bg-[#24150c] p-2.5 rounded-xl border border-amber-500/50 shadow-inner">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-black text-amber-300 flex items-center gap-1">
+                        📊 1試合 順位・スコア推移（全4ラウンド）
+                      </span>
+                      <span className="text-[10px] text-amber-400/80 font-bold">獲得点 (累計) [順位]</span>
+                    </div>
+
                     <table className="w-full text-left text-xs">
                       <thead>
-                        <tr className="text-[11px] text-amber-300/70 border-b border-amber-900/60 pb-1">
+                        <tr className="text-[10px] text-amber-400/70 border-b border-amber-900/60 pb-1">
+                          <th className="pb-1.5 font-bold">対戦者</th>
+                          <th className="pb-1.5 font-bold text-center">R1</th>
+                          <th className="pb-1.5 font-bold text-center">R2</th>
+                          <th className="pb-1.5 font-bold text-center">R3</th>
+                          <th className="pb-1.5 font-bold text-center">R4</th>
+                          <th className="pb-1.5 font-bold text-right">現在の総合順位</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-amber-950/60">
+                        {(() => {
+                          const currentScores = gameState.scores || [0, 0, 0, 0];
+                          // 現在の総合順位算出
+                          const overallRanked = [0, 1, 2, 3].sort((a, b) => (currentScores[b] || 0) - (currentScores[a] || 0));
+
+                          return gameState.players.map((p, idx) => {
+                            const isTurn = gameState.turn === idx;
+                            const myScore = currentScores[idx] || 0;
+                            const overallRank = overallRanked.indexOf(idx) + 1;
+                            const history = gameState.roundHistory || [];
+
+                            return (
+                              <tr key={p.id} className={isTurn ? 'bg-amber-950/40' : ''}>
+                                <td className="py-2 font-black text-amber-100 flex items-center gap-1">
+                                  <span className={`text-[9px] font-black px-1 py-0.2 rounded bg-gradient-to-b ${playerColors[idx]}`}>
+                                    P{idx}
+                                  </span>
+                                  <span className="truncate max-w-[65px] text-[11px]">{p.name}</span>
+                                </td>
+
+                                {/* R1 ~ R4 各ラウンド終了時のスコア・順位推移 */}
+                                {[1, 2, 3, 4].map(rNum => {
+                                  const rRec = history.find(h => h.round === rNum);
+                                  if (!rRec) {
+                                    return (
+                                      <td key={rNum} className="py-2 text-center text-[10px] text-amber-500/30 font-bold">
+                                        {gameState.round === rNum ? '進行中' : '-'}
+                                      </td>
+                                    );
+                                  }
+                                  const pts = rRec.roundScores[idx] || 0;
+                                  const accum = rRec.accumulatedScores[idx] || 0;
+                                  const rRank = rRec.ranks.indexOf(idx) + 1;
+
+                                  return (
+                                    <td key={rNum} className="py-2 text-center text-[10px] leading-tight">
+                                      <div className="flex flex-col items-center justify-center">
+                                        <span className={`font-black text-[10.5px] ${rRank === 1 ? 'text-amber-300' : 'text-emerald-400'}`}>
+                                          +{pts} pt
+                                        </span>
+                                        <div className="flex items-center gap-1 text-[9px] text-amber-200/70">
+                                          <span>({accum})</span>
+                                          <span className={`font-bold px-1 rounded text-[8.5px] ${
+                                            rRank === 1 ? 'bg-amber-400 text-slate-950' :
+                                            rRank === 2 ? 'bg-slate-700 text-slate-200' :
+                                            rRank === 3 ? 'bg-amber-900 text-amber-200' :
+                                            'bg-slate-900 text-slate-400'
+                                          }`}>
+                                            {rRank}位
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </td>
+                                  );
+                                })}
+
+                                {/* 現在の総合順位 / 累計スコア */}
+                                <td className="py-2 text-right">
+                                  <div className="flex flex-col items-end justify-center">
+                                    <span className="font-black text-amber-100 text-xs">
+                                      {myScore} pt
+                                    </span>
+                                    <span className={`text-[9.5px] font-black px-1.5 py-0.2 rounded shadow-xs ${
+                                      overallRank === 1 ? 'bg-amber-400 text-slate-950 border border-amber-200' :
+                                      overallRank === 2 ? 'bg-slate-300 text-slate-950' :
+                                      overallRank === 3 ? 'bg-amber-700 text-white' :
+                                      'bg-slate-800 text-slate-400'
+                                    }`}>
+                                      総合 {overallRank}位
+                                    </span>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          });
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* ⚡ 現在局のリアルタイム状況テーブル */}
+                  <div className="bg-[#24150c] p-2.5 rounded-xl border border-amber-900/60">
+                    <div className="text-[11px] font-bold text-amber-300/80 mb-1.5">
+                      ⚡ 第 {gameState.round} 局 リアルタイム状況
+                    </div>
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="text-[10px] text-amber-300/70 border-b border-amber-900/60 pb-1">
                           <th className="pb-1 font-bold">プレイヤー</th>
-                          <th className="pb-1 font-bold text-center">手番回数</th>
                           <th className="pb-1 font-bold text-center">手札</th>
                           <th className="pb-1 font-bold text-center">役出</th>
                           <th className="pb-1 font-bold text-center">付札</th>
@@ -310,43 +427,37 @@ ${JSON.stringify(stats, null, 2)}`;
 
                           return (
                             <tr key={p.id} className={isTurn ? 'bg-amber-950/30' : ''}>
-                              <td className="py-1.5 font-black text-amber-100 flex items-center gap-1.5">
-                                <span className={`text-[9px] font-black px-1.5 py-0.2 rounded bg-gradient-to-b ${playerColors[idx]}`}>
-                                  P{idx}
-                                </span>
-                                <span>{p.name}</span>
+                              <td className="py-1 font-bold text-amber-100 truncate max-w-[80px]">
+                                {p.name}
                               </td>
-                              <td className="py-1.5 text-center font-bold text-amber-400">
-                                {p.actions?.turns || 0} 回
-                              </td>
-                              <td className="py-1.5 text-center font-black text-amber-300 text-sm">
+                              <td className="py-1 text-center font-black text-amber-300">
                                 {p.hand.length}枚
                               </td>
-                              <td className="py-1.5 text-center font-bold text-amber-200">
+                              <td className="py-1 text-center font-bold text-amber-200">
                                 {p.actions?.melds || 0}
                               </td>
-                              <td className="py-1.5 text-center font-bold text-teal-300">
+                              <td className="py-1 text-center font-bold text-teal-300">
                                 {p.actions?.adds || 0}
                               </td>
-                              <td className="py-1.5 text-center font-bold text-orange-300">
+                              <td className="py-1 text-center font-bold text-orange-300">
                                 {p.actions?.pon || 0}
                               </td>
-                              <td className="py-1.5 text-center font-bold text-cyan-300">
+                              <td className="py-1 text-center font-bold text-cyan-300">
                                 {p.actions?.chii || 0}
                               </td>
-                              <td className="py-1.5 text-right font-bold">
+                              <td className="py-1 text-right font-bold">
                                 {isTenpai ? (
-                                  <span className="text-[10px] text-rose-400 font-black animate-pulse px-1.5 py-0.5 bg-rose-950/60 rounded border border-rose-800">
+                                  <span className="text-[9px] text-rose-400 font-black animate-pulse px-1 py-0.5 bg-rose-950/60 rounded border border-rose-800">
                                     残り1枚
                                   </span>
                                 ) : isTurn ? (
-                                  <span className="text-[10px] text-slate-950 font-black px-1.5 py-0.5 bg-amber-400 rounded">
+                                  <span className="text-[9px] text-slate-950 font-black px-1 py-0.5 bg-amber-400 rounded">
                                     手番中
                                   </span>
                                 ) : p.hasMelded ? (
-                                  <span className="text-[10px] text-emerald-400 font-medium">役出済</span>
+                                  <span className="text-[9px] text-emerald-400 font-medium">役出済</span>
                                 ) : (
-                                  <span className="text-[10px] text-amber-300/40">未公開</span>
+                                  <span className="text-[9px] text-amber-300/40">未公開</span>
                                 )}
                               </td>
                             </tr>
@@ -384,18 +495,22 @@ ${JSON.stringify(stats, null, 2)}`;
               {/* 1. 概要タブ */}
               {activeTab === 'overview' && (
                 <div className="space-y-3">
-                  <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="grid grid-cols-4 gap-1.5 text-center">
                     <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/60">
-                      <span className="text-[11px] text-amber-300/70 font-bold block">総対戦数</span>
-                      <span className="text-lg font-black text-amber-100">{totalRounds} <span className="text-xs font-normal">戦</span></span>
+                      <span className="text-[10px] text-amber-300/70 font-bold block">総対戦数</span>
+                      <span className="text-base font-black text-amber-100">{totalRounds} <span className="text-[10px] font-normal">戦</span></span>
                     </div>
                     <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/60">
-                      <span className="text-[11px] text-amber-300/70 font-bold block">アガリ率</span>
-                      <span className="text-lg font-black text-amber-400">{winRate}%</span>
+                      <span className="text-[10px] text-amber-300/70 font-bold block">アガリ率</span>
+                      <span className="text-base font-black text-amber-400">{winRate}%</span>
                     </div>
                     <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/60">
-                      <span className="text-[11px] text-amber-300/70 font-bold block">平均決着手番数</span>
-                      <span className="text-base font-black text-amber-100">{avgTurns} <span className="text-xs font-normal">手番 (全体)</span></span>
+                      <span className="text-[10px] text-amber-300/70 font-bold block">1試合平均 (4局)</span>
+                      <span className="text-base font-black text-emerald-400">{p0AvgMatchScoreStr} <span className="text-[10px] font-normal">pt</span></span>
+                    </div>
+                    <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/60">
+                      <span className="text-[10px] text-amber-300/70 font-bold block">平均決着手番</span>
+                      <span className="text-base font-black text-amber-100">{avgTurns} <span className="text-[10px] font-normal">手</span></span>
                     </div>
                   </div>
 
@@ -423,7 +538,7 @@ ${JSON.stringify(stats, null, 2)}`;
                 </div>
               )}
 
-              {/* 2. 成績（プレイヤー）タブ */}
+              {/* 1. 成績（プレイヤー）タブ */}
               {activeTab === 'players' && (
                 <div className="bg-[#24150c] p-2.5 rounded-xl border border-amber-900/60">
                   <table className="w-full text-left text-xs">
@@ -432,7 +547,7 @@ ${JSON.stringify(stats, null, 2)}`;
                         <th className="pb-1.5 font-bold">プレイヤー</th>
                         <th className="pb-1.5 font-bold text-center">勝利(勝率)</th>
                         <th className="pb-1.5 font-bold text-center">平均手番</th>
-                        <th className="pb-1.5 font-bold text-center">平均失点</th>
+                        <th className="pb-1.5 font-bold text-center text-emerald-400">1試合平均 (4局)</th>
                         <th className="pb-1.5 font-bold text-center">役出</th>
                         <th className="pb-1.5 font-bold text-center">付札</th>
                         <th className="pb-1.5 font-bold text-center">ポン</th>
@@ -443,7 +558,9 @@ ${JSON.stringify(stats, null, 2)}`;
                       {playerNames.map((name, idx) => {
                         const wins = stats.wins[idx];
                         const pWinRate = totalRounds > 0 ? ((wins / totalRounds) * 100).toFixed(1) : '0.0';
-                        const avgPenalty = totalRounds > 0 ? (stats.totalPenalties[idx] / totalRounds).toFixed(1) : '0.0';
+                        const scoresArr = stats.totalScores || stats.totalPenalties || [0, 0, 0, 0];
+                        const rawAvg = totalRounds > 0 ? (scoresArr[idx] / totalRounds) * 4 : 0;
+                        const avgMatchScoreStr = rawAvg > 0 ? `+${rawAvg.toFixed(1)}` : rawAvg.toFixed(1);
                         const pActions = stats.playerActions?.[idx] || { melds: 0, adds: 0, pon: 0, chii: 0, turns: 0 };
                         const avgTurnsPerP = totalRounds > 0 ? (pActions.turns / totalRounds).toFixed(1) : '0.0';
 
@@ -461,8 +578,8 @@ ${JSON.stringify(stats, null, 2)}`;
                             <td className="py-2 text-center font-bold text-amber-400">
                               {avgTurnsPerP}回 <span className="text-[9px] text-amber-300/60 font-normal">({pActions.turns}回)</span>
                             </td>
-                            <td className="py-2 text-center font-bold text-amber-200">
-                              {avgPenalty}点
+                            <td className="py-2 text-center font-black text-emerald-400">
+                              {avgMatchScoreStr} pt
                             </td>
                             <td className="py-2 text-center text-amber-100 font-bold">
                               {pActions.melds}
@@ -481,6 +598,109 @@ ${JSON.stringify(stats, null, 2)}`;
                       })}
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {/* 2. 順位推移 (Rank Transitions) タブ */}
+              {activeTab === 'transitions' && (
+                <div className="space-y-3">
+                  {(() => {
+                    const trans = stats.rankTransitions || [
+                      [0, 0, 0, 0],
+                      [0, 0, 0, 0],
+                      [0, 0, 0, 0],
+                      [0, 0, 0, 0],
+                    ];
+                    
+                    const r1FirstTotal = trans[0].reduce((a, b) => a + b, 0);
+                    const r1LastTotal = trans[3].reduce((a, b) => a + b, 0);
+
+                    const r1FirstToWin = trans[0][0]; // R1 1着 -> 最終1位
+                    const r1LastToWin = trans[3][0];  // R1 4着 -> 最終1位
+
+                    const winKeepRate = r1FirstTotal > 0 ? ((r1FirstToWin / r1FirstTotal) * 100).toFixed(1) : '0.0';
+                    const comebackWinRate = r1LastTotal > 0 ? ((r1LastToWin / r1LastTotal) * 100).toFixed(1) : '0.0';
+
+                    return (
+                      <>
+                        {/* ハイライトサマリー */}
+                        <div className="grid grid-cols-2 gap-2 text-center">
+                          <div className="bg-gradient-to-b from-[#2a1a0f] to-[#1e1109] p-2.5 rounded-xl border border-amber-500/50 shadow-sm">
+                            <span className="text-[10px] text-amber-300 font-bold block mb-0.5">🔥 初手4着からの1位逆転率</span>
+                            <span className="text-lg font-black text-emerald-400">{comebackWinRate}%</span>
+                            <span className="text-[9px] text-amber-300/60 block leading-tight pt-0.5">
+                              ({r1LastToWin} / {r1LastTotal} 試合)
+                            </span>
+                          </div>
+                          <div className="bg-gradient-to-b from-[#2a1a0f] to-[#1e1109] p-2.5 rounded-xl border border-amber-500/50 shadow-sm">
+                            <span className="text-[10px] text-amber-300 font-bold block mb-0.5">🛡️ 初手1着からの逃げ切り率</span>
+                            <span className="text-lg font-black text-amber-300">{winKeepRate}%</span>
+                            <span className="text-[9px] text-amber-300/60 block leading-tight pt-0.5">
+                              ({r1FirstToWin} / {r1FirstTotal} 試合)
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* R1順位 ➔ 最終順位の遷移マトリクス表 */}
+                        <div className="bg-[#24150c] p-2.5 rounded-xl border border-amber-900/60">
+                          <div className="text-[11px] font-bold text-amber-300 mb-2 flex items-center justify-between">
+                            <span>📊 順位推移マトリクス (R1順位 ➔ 最終順位)</span>
+                            <span className="text-[9.5px] text-amber-400/60">全 {stats.totalMatches || 0} 試合</span>
+                          </div>
+
+                          <table className="w-full text-left text-xs border-collapse">
+                            <thead>
+                              <tr className="text-[9.5px] text-amber-400/80 border-b border-amber-900/60 pb-1">
+                                <th className="pb-1 font-bold">R1スタート</th>
+                                <th className="pb-1 font-bold text-center text-amber-300">最終1位(優勝)</th>
+                                <th className="pb-1 font-bold text-center">最終2位</th>
+                                <th className="pb-1 font-bold text-center">最終3位</th>
+                                <th className="pb-1 font-bold text-center">最終4位</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-amber-950/60 font-bold text-[10.5px]">
+                              {[0, 1, 2, 3].map(r1Idx => {
+                                const rowTotal = trans[r1Idx].reduce((a, b) => a + b, 0);
+
+                                return (
+                                  <tr key={r1Idx} className="hover:bg-amber-950/30">
+                                    <td className="py-2 text-amber-200 font-bold flex items-center gap-1">
+                                      <span className={`text-[8.5px] font-black px-1 rounded ${
+                                        r1Idx === 0 ? 'bg-amber-400 text-slate-950' :
+                                        r1Idx === 1 ? 'bg-slate-700 text-slate-200' :
+                                        r1Idx === 2 ? 'bg-amber-900 text-amber-200' :
+                                        'bg-slate-900 text-slate-400'
+                                      }`}>
+                                        {r1Idx + 1}着
+                                      </span>
+                                      <span>で開始</span>
+                                    </td>
+
+                                    {[0, 1, 2, 3].map(finalIdx => {
+                                      const count = trans[r1Idx][finalIdx];
+                                      const pct = rowTotal > 0 ? ((count / rowTotal) * 100).toFixed(1) : '0.0';
+                                      const isSpecial = (r1Idx === 3 && finalIdx === 0) || (r1Idx === 0 && finalIdx === 0);
+
+                                      return (
+                                        <td key={finalIdx} className="py-2 text-center leading-tight">
+                                          <span className={isSpecial ? 'text-emerald-400 font-black text-xs' : 'text-amber-100'}>
+                                            {pct}%
+                                          </span>
+                                          <span className="text-[8.5px] text-amber-300/50 block font-normal">
+                                            ({count}回)
+                                          </span>
+                                        </td>
+                                      );
+                                    })}
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               )}
 
