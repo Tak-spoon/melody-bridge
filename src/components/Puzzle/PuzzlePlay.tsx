@@ -473,11 +473,12 @@ export const PuzzlePlay: React.FC<PuzzlePlayProps> = ({
   const [selectedMeld, setSelectedMeld] = useState<string | null>(null);
   const [lastAddedCardId, setLastAddedCardId] = useState<string | null>(null);
 
-  // 演出・ポップアップステート
+  // 演出・ポップアップステート（チュートリアルのみ開始時にお題モーダルを表示）
+  const isTutorial = stage.id.startsWith('tut_');
   const [isCleared, setIsCleared] = useState(false);
   const [winEffectName, setWinEffectName] = useState<string | null>(null);
   const [cutInInfo, setCutInInfo] = useState<{ type: 'pon' | 'chii'; playerName: string } | null>(null);
-  const [showIntroModal, setShowIntroModal] = useState(true);
+  const [showIntroModal, setShowIntroModal] = useState(isTutorial);
   const [showHintModal, setShowHintModal] = useState(false);
   const [showRuleModal, setShowRuleModal] = useState(false);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
@@ -554,7 +555,7 @@ export const PuzzlePlay: React.FC<PuzzlePlayProps> = ({
     setIsCleared(false);
     setWinEffectName(null);
     setCutInInfo(null);
-    setShowIntroModal(true);
+    setShowIntroModal(stage.id.startsWith('tut_'));
     setShowHintModal(false);
     setShowRuleModal(false);
     setShowDiscardModal(false);

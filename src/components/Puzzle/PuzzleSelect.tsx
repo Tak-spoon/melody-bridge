@@ -67,7 +67,7 @@ export const PuzzleSelect: React.FC<PuzzleSelectProps> = ({
           </button>
           <h2 className="text-xs sm:text-sm font-bold text-emerald-100 flex items-center gap-1.5 ml-1 font-serif">
             <Layers className="w-4 h-4 text-emerald-400" />
-            <span>詰めメロディ</span>
+            <span>パズルモード</span>
           </h2>
         </div>
 
@@ -134,7 +134,7 @@ export const PuzzleSelect: React.FC<PuzzleSelectProps> = ({
               <button
                 key={stage.id}
                 onClick={() => onSelectStage(stage)}
-                className={`group p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all active:scale-[0.97] min-h-[76px] relative overflow-hidden ${
+                className={`group p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all active:scale-[0.97] min-h-[62px] relative overflow-hidden ${
                   isCleared
                     ? 'bg-gradient-to-br from-[#1d3826] to-[#162a1d] hover:from-[#244530] hover:to-[#1c3524] border-emerald-600/70 shadow-sm'
                     : 'bg-gradient-to-br from-[#132217] to-[#0e1911] hover:from-[#1a2e20] hover:to-[#132318] border-emerald-900/80 shadow-inner'
@@ -166,16 +166,11 @@ export const PuzzleSelect: React.FC<PuzzleSelectProps> = ({
                 </div>
 
                 {/* カード中央：ステージ名 */}
-                <div className="my-1">
-                  <h4 className="text-xs font-black text-emerald-100 group-hover:text-emerald-300 transition-colors line-clamp-1 leading-tight">
+                <div className="my-1.5">
+                  <h4 className="text-xs sm:text-[13px] font-black text-emerald-100 group-hover:text-emerald-300 transition-colors line-clamp-2 leading-tight">
                     {stage.title.split(':')[1]?.trim() || stage.title}
                   </h4>
                 </div>
-
-                {/* カード下部：概要 */}
-                <p className="text-[9.5px] text-emerald-300/60 line-clamp-1 leading-none">
-                  {stage.description}
-                </p>
               </button>
             );
           })}
