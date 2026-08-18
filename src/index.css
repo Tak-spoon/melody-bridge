@@ -161,3 +161,105 @@ body {
 .animate-card-insert {
   animation: card-insert-slide 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* スワップ時の「古いカードが上にポンと押し出されて跳ねる」アニメーション */
+@keyframes card-eject-up {
+  0% {
+    transform: translateY(0) scale(1) rotate(0deg);
+    opacity: 1;
+    filter: brightness(1.3);
+  }
+  35% {
+    transform: translateY(-32px) scale(1.15) rotate(-6deg);
+    opacity: 0.95;
+    filter: brightness(1.5) drop-shadow(0 0 14px rgba(6, 182, 212, 0.95));
+  }
+  70% {
+    transform: translateY(-50px) scale(0.9) rotate(8deg);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-70px) scale(0.5) rotate(15deg);
+    opacity: 0;
+  }
+}
+
+/* スワップ時の「新しいカードが下から滑り込んで収まる」アニメーション */
+@keyframes card-swap-in {
+  0% {
+    transform: translateY(26px) scale(0.85);
+    opacity: 0;
+    filter: brightness(1.4);
+    box-shadow: 0 0 20px rgba(6, 182, 212, 1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.08);
+    opacity: 1;
+    filter: brightness(1.2);
+    box-shadow: 0 0 14px rgba(6, 182, 212, 0.8);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    filter: brightness(1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.animate-card-eject {
+  animation: card-eject-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: none;
+}
+
+.animate-card-swap-in {
+  animation: card-swap-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* アクション可能な場のセット用のゆったりとした呼吸点滅（2秒周期） */
+@keyframes pulse-slow {
+  0%, 100% {
+    border-color: rgba(52, 211, 153, 0.45);
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.2);
+  }
+  50% {
+    border-color: rgba(52, 211, 153, 0.95);
+    box-shadow: 0 0 18px rgba(16, 185, 129, 0.6), inset 0 0 8px rgba(16, 185, 129, 0.25);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s ease-in-out infinite;
+}
+
+/* 場のセット選択時に、リアクションできる手札カードがゆったり浮遊するアニメーション（1.3秒周期） */
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 1.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* 連結可能カード用の優しいラベンダー・パープル共鳴パルス（1.8秒周期） */
+@keyframes pulse-link-gentle {
+  0%, 100% {
+    box-shadow: 0 0 4px rgba(192, 132, 252, 0.35);
+    border-color: rgba(192, 132, 252, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(192, 132, 252, 0.85);
+    border-color: rgba(216, 180, 254, 0.95);
+  }
+}
+
+.animate-pulse-link {
+  animation: pulse-link-gentle 1.8s ease-in-out infinite;
+}
+
+
+

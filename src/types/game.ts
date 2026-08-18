@@ -21,8 +21,10 @@ export interface Meld {
 export interface PlayerActionCounts {
   melds: number;
   adds: number;
+  swaps: number; // 場のカードとの入れ替え（スワップ）回数
   pon: number;
   chii: number;
+  turns: number; // 手番が回ってきた回数（巡数）
 }
 
 export interface Player {
@@ -81,4 +83,5 @@ export interface GameState {
   message: string;
   logs: LogEntry[];
   actionCount: number;
+  hasSwappedThisTurn?: boolean; // 今手番ですでにスワップを行ったか（無限ループ防止・1手番1回制限）
 }

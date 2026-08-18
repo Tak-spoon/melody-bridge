@@ -33,31 +33,27 @@ export const GuideAndDeck: React.FC<GuideAndDeckProps> = ({
 
   return (
     <div className="flex gap-1.5 sm:gap-2 items-stretch shrink-0 w-full">
-      {/* 1. ガイドメッセージコンテナ（左側：flex-1 独立ボックス） */}
-      <div className={`flex flex-col justify-between p-2 sm:p-2.5 rounded-xl border-2 transition-all duration-150 flex-1 min-w-0 bg-white ${
-        isMyInterrupt
-          ? 'border-amber-400 shadow-[0_4px_16px_rgba(251,191,36,0.3)] ring-2 ring-amber-400'
-          : isActionActive 
-            ? 'border-amber-400 shadow-[0_2px_12px_rgba(251,191,36,0.2)] ring-2 ring-amber-300/60' 
-            : 'border-amber-200/80 shadow-xs'
-      }`}>
-        {/* 上段：直前の履歴アクション（2行になっても枠内に美しく収まる） */}
-        {lastActionText ? (
-          <div className="bg-amber-50/90 rounded-md px-2 py-0.75 border border-amber-200/80 mb-1 w-full">
-            <p className="text-[10px] sm:text-[11px] font-bold text-amber-950 leading-tight break-words">
-              {lastActionText}
-            </p>
-          </div>
-        ) : (
-          <div className="h-1" />
-        )}
+      {/* 1. 過去ログ ＆ ガイドメッセージエリア（左側：上下2つの独立コンテナに分離） */}
+      <div className="flex flex-col gap-1.5 flex-1 min-w-0 justify-between">
+        {/* 上コンテナ：直前の履歴アクション専用コンテナ */}
+        <div className="bg-[#fef8ea] rounded-lg px-2.5 py-1 border border-amber-300/90 shadow-xs flex items-center min-h-[26px] w-full">
+          <p className="text-[10px] sm:text-[10.5px] font-black text-amber-950 leading-tight truncate">
+            {lastActionText || 'ゲーム開始'}
+          </p>
+        </div>
 
-        {/* 下段：ガイドメッセージ（自然な句読点と文字組みで改行対応） */}
-        <div className="flex items-start gap-1.5 min-w-0">
+        {/* 下コンテナ：現在の操作ナビ・ガイドメッセージ専用コンテナ */}
+        <div className={`flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg border-2 transition-all duration-150 flex-1 min-w-0 bg-white shadow-xs ${
+          isMyInterrupt
+            ? 'border-amber-400 shadow-[0_2px_12px_rgba(251,191,36,0.3)] ring-2 ring-amber-400'
+            : isActionActive 
+              ? 'border-amber-400 shadow-[0_2px_10px_rgba(251,191,36,0.2)] ring-1.5 ring-amber-300' 
+              : 'border-amber-200'
+        }`}>
           <Info className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${
             isActionActive ? 'text-amber-600 animate-pulse' : 'text-slate-400'
           }`} />
-          <p className="text-[11px] sm:text-xs text-slate-800 font-bold leading-snug break-words flex-1">
+          <p className="text-[10.5px] sm:text-[11px] text-slate-800 font-bold leading-snug break-words flex-1">
             {guideMessage}
           </p>
         </div>

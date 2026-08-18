@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { BarChart3, X, Zap, RotateCcw, PlayCircle, GripHorizontal, Minimize2, Maximize2, Activity, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { BarChart3, X, Zap, RotateCcw, PlayCircle, GripHorizontal, Minimize2, Maximize2, Activity, ShieldCheck, AlertTriangle, Copy, Check } from 'lucide-react';
 import { GameStats, runBatchSimulation, resetStats } from '../../utils/stats';
 import { GameState } from '../../types/game';
 import { getChordSymbol } from '../../utils/musicTheory';
@@ -22,6 +22,7 @@ export const StatsModal: React.FC<StatsModalProps> = ({
   const [isSimulating, setIsSimulating] = useState(false);
   const [activeTab, setActiveTab] = useState<'current' | 'overview' | 'players' | 'melds' | 'sim'>('current');
   const [isMinimized, setIsMinimized] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // ドラッグ移動位置の管理
   const [position, setPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -108,6 +109,39 @@ export const StatsModal: React.FC<StatsModalProps> = ({
     }
   };
 
+  const handleCopyStats = () => {
+    const avgTurnsPerRound = totalRounds > 0 ? (stats.totalTurns / totalRounds).toFixed(1) : '0.0';
+    const reportText = `【メロディ・ブリッジ 対戦統計レポート】
+・総対戦数: ${totalRounds} 戦
+・アガリ率: ${winRate}% (${totalWins}回) / 流局率: ${drawRate}% (${stats.draws}回)
+・平均決着手番数: ${avgTurnsPerRound} 手番 (全体)
+・割り込み発生: ポン ${stats.interruptsCount.pon}回 / チー ${stats.interruptsCount.chii}回
+
+【プレイヤー別成績】
+${playerNames.map((name, i) => {
+  const wins = stats.wins[i];
+  const pWinRate = totalRounds > 0 ? ((wins / totalRounds) * 100).toFixed(1) : '0.0';
+  const avgPen = totalRounds > 0 ? (stats.totalPenalties[i] / totalRounds).toFixed(1) : '0.0';
+  const act = stats.playerActions?.[i] || { melds: 0, adds: 0, swaps: 0, pon: 0, chii: 0, turns: 0 };
+  const avgTurnsPerP = totalRounds > 0 ? (act.turns / totalRounds).toFixed(1) : '0.0';
+  return `・${name}: ${wins}勝 (${pWinRate}%) / 平均手番: ${avgTurnsPerP}回 (累計${act.turns}回) / 平均失点: ${avgPen}点 [役出:${act.melds}, 付札:${act.adds}, 入替:${act.swaps || 0}, ポン:${act.pon}, チー:${act.chii}]`;
+}).join('\n')}
+
+【役・和音の内訳】
+・和音(コード): ${stats.meldsCount.chord}個 (${chordRatio}%) / 音階(スケール): ${stats.meldsCount.scale}個 (${scaleRatio}%)
+・出現コード上位: ${sortedChordTypes.map(([chord, cnt]) => `${chord}(${cnt}回)`).join(', ')}
+
+--- RAW JSON DATA ---
+${JSON.stringify(stats, null, 2)}`;
+
+    navigator.clipboard.writeText(reportText).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(err => {
+      console.error('Copy failed:', err);
+    });
+  };
+
   const sortedChordTypes = Object.entries(stats.meldsCount.chordTypes || {})
     .sort((a, b) => b[1] - a[1])
     .slice(0, 8);
@@ -170,7 +204,7 @@ export const StatsModal: React.FC<StatsModalProps> = ({
         {/* 最小化（コンパクト）時の表示 */}
         {isMinimized ? (
           <div className="text-xs text-amber-200/90 flex items-center justify-between px-1 select-none font-bold">
-            <span>局: <strong className="text-amber-300">R{gameState.round} ({gameState.actionCount}手)</strong></span>
+            <span>局: <strong className="text-amber-300">R{gameState.round} ({gameState.actionCount}手番)</strong></span>
             <span>勝率: <strong className="text-amber-300">{winRate}%</strong></span>
             <span>平均: <strong className="text-amber-300">{avgTurns}手</strong></span>
           </div>
@@ -245,8 +279,8 @@ export const StatsModal: React.FC<StatsModalProps> = ({
                       <span className="text-base font-black text-amber-100">Round {gameState.round}/4</span>
                     </div>
                     <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/60">
-                      <span className="text-[11px] text-amber-300/70 font-bold block">経過手数</span>
-                      <span className="text-base font-black text-amber-300">{gameState.actionCount} 手目</span>
+                      <span className="text-[11px] text-amber-300/70 font-bold block">完了手番数</span>
+                      <span className="text-base font-black text-amber-300">{gameState.actionCount} 手番</span>
                     </div>
                     <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/60">
                       <span className="text-[11px] text-amber-300/70 font-bold block">山札残り</span>
@@ -260,6 +294,7 @@ export const StatsModal: React.FC<StatsModalProps> = ({
                       <thead>
                         <tr className="text-[11px] text-amber-300/70 border-b border-amber-900/60 pb-1">
                           <th className="pb-1 font-bold">プレイヤー</th>
+                          <th className="pb-1 font-bold text-center">手番回数</th>
                           <th className="pb-1 font-bold text-center">手札</th>
                           <th className="pb-1 font-bold text-center">役出</th>
                           <th className="pb-1 font-bold text-center">付札</th>
@@ -280,6 +315,9 @@ export const StatsModal: React.FC<StatsModalProps> = ({
                                   P{idx}
                                 </span>
                                 <span>{p.name}</span>
+                              </td>
+                              <td className="py-1.5 text-center font-bold text-amber-400">
+                                {p.actions?.turns || 0} 回
                               </td>
                               <td className="py-1.5 text-center font-black text-amber-300 text-sm">
                                 {p.hand.length}枚
@@ -356,8 +394,8 @@ export const StatsModal: React.FC<StatsModalProps> = ({
                       <span className="text-lg font-black text-amber-400">{winRate}%</span>
                     </div>
                     <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/60">
-                      <span className="text-[11px] text-amber-300/70 font-bold block">平均決着手数</span>
-                      <span className="text-lg font-black text-amber-100">{avgTurns} <span className="text-xs font-normal">手</span></span>
+                      <span className="text-[11px] text-amber-300/70 font-bold block">平均決着手番数</span>
+                      <span className="text-base font-black text-amber-100">{avgTurns} <span className="text-xs font-normal">手番 (全体)</span></span>
                     </div>
                   </div>
 
@@ -393,6 +431,7 @@ export const StatsModal: React.FC<StatsModalProps> = ({
                       <tr className="text-[11px] text-amber-300/70 border-b border-amber-900/60 pb-1">
                         <th className="pb-1.5 font-bold">プレイヤー</th>
                         <th className="pb-1.5 font-bold text-center">勝利(勝率)</th>
+                        <th className="pb-1.5 font-bold text-center">平均手番</th>
                         <th className="pb-1.5 font-bold text-center">平均失点</th>
                         <th className="pb-1.5 font-bold text-center">役出</th>
                         <th className="pb-1.5 font-bold text-center">付札</th>
@@ -405,7 +444,8 @@ export const StatsModal: React.FC<StatsModalProps> = ({
                         const wins = stats.wins[idx];
                         const pWinRate = totalRounds > 0 ? ((wins / totalRounds) * 100).toFixed(1) : '0.0';
                         const avgPenalty = totalRounds > 0 ? (stats.totalPenalties[idx] / totalRounds).toFixed(1) : '0.0';
-                        const pActions = stats.playerActions?.[idx] || { melds: 0, adds: 0, pon: 0, chii: 0 };
+                        const pActions = stats.playerActions?.[idx] || { melds: 0, adds: 0, pon: 0, chii: 0, turns: 0 };
+                        const avgTurnsPerP = totalRounds > 0 ? (pActions.turns / totalRounds).toFixed(1) : '0.0';
 
                         return (
                           <tr key={idx}>
@@ -417,6 +457,9 @@ export const StatsModal: React.FC<StatsModalProps> = ({
                             </td>
                             <td className="py-2 text-center font-black text-amber-300">
                               {wins}勝 ({pWinRate}%)
+                            </td>
+                            <td className="py-2 text-center font-bold text-amber-400">
+                              {avgTurnsPerP}回 <span className="text-[9px] text-amber-300/60 font-normal">({pActions.turns}回)</span>
                             </td>
                             <td className="py-2 text-center font-bold text-amber-200">
                               {avgPenalty}点
@@ -532,18 +575,41 @@ export const StatsModal: React.FC<StatsModalProps> = ({
             </div>
 
             {/* 固定フッター */}
-            <div className="mt-3 flex items-center justify-between pt-2 border-t border-[#382315] shrink-0 select-none">
+            <div className="mt-3 flex items-center justify-between pt-2 border-t border-[#382315] shrink-0 select-none gap-2">
               <button
                 onClick={handleReset}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-rose-300 hover:text-rose-100 hover:bg-rose-950/40 rounded-lg text-xs font-bold border border-rose-900/60 transition"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-rose-300 hover:text-rose-100 hover:bg-rose-950/40 rounded-lg text-xs font-bold border border-rose-900/60 transition"
+                title="統計データをすべてリセットします"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>データ初期化</span>
+                <span>初期化</span>
+              </button>
+
+              <button
+                onClick={handleCopyStats}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition border shadow-xs ${
+                  copied
+                    ? 'bg-emerald-600 text-white border-emerald-400'
+                    : 'bg-[#24150c] hover:bg-[#341e11] text-amber-200 border-amber-600/60 active:scale-95'
+                }`}
+                title="AIに共有するための完全な統計テキスト＆JSONデータをクリップボードにコピーします"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-200" />
+                    <span>コピー完了！</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 text-amber-400" />
+                    <span>統計をコピー</span>
+                  </>
+                )}
               </button>
 
               <button 
                 onClick={onClose} 
-                className="px-6 py-1.5 bg-gradient-to-b from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 active:scale-98 text-slate-950 font-black rounded-xl text-xs shadow-md border border-amber-200 transition"
+                className="px-5 py-1.5 bg-gradient-to-b from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 active:scale-98 text-slate-950 font-black rounded-xl text-xs shadow-md border border-amber-200 transition"
               >
                 閉じる
               </button>

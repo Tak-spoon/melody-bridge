@@ -2,15 +2,17 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { Card as CardType, GameState, MeldType } from './types/game';
 import { NOTE_NAMES, NOTE_JP } from './constants/music';
-import { getChordSymbol, getChordInterpretation, getScaleInterpretation, tryAddCardToMeld } from './utils/musicTheory';
+import { getChordSymbol, getChordInterpretation, getScaleInterpretation, tryAddCardToMeld, trySwapCardInMeld, analyzeHandConnections, SwapResult } from './utils/musicTheory';
 import { setupRound, sortHand, getCombinations, getValidPonCombs, getValidChiiCombs, checkInterrupts, addLog, finishRound, checkWinCondition } from './utils/gameLogic';
-import { playMelody, playCutInSound, playWinSound, playCardTone, getAudioContext } from './utils/audio';
+import { playMelody, playCutInSound, playWinSound, playCardTone, playSwapSound, getAudioContext } from './utils/audio';
 import { GameStats, loadStats, recordGameRound, recordInterrupt } from './utils/stats';
 
 import { Header } from './components/Header';
 import { PlayerStatus } from './components/PlayerStatus';
 import { GuideAndDeck } from './components/GuideAndDeck';
 import { Field } from './components/Field';
+import { IndicatorBar } from './components/IndicatorBar';
+import { ActionBar } from './components/ActionBar';
 import { Hand } from './components/Hand';
 import { Card as CardComponent } from './components/Card';
 import { CutIn } from './components/CutIn';
@@ -113,6 +115,12 @@ export default function App() {
   // 付け札されたカードID（スライドイン差し込み演出用）
   const [lastAddedCardId, setLastAddedCardId] = useState<string | null>(null);
 
+  // スワップ（入れ替え）演出状態
+  const [lastSwappedMeldId, setLastSwappedMeldId] = useState<string | null>(null);
+  const [lastSwappedInCardId, setLastSwappedInCardId] = useState<string | null>(null);
+  const [swappedInCardId, setSwappedInCardId] = useState<string | null>(null);
+  const [ejectedCardInfo, setEjectedCardInfo] = useState<{ card: CardType; meldId: string } | null>(null);
+
   // 初回ユーザー操作時にWeb Audio APIを有効化
   const initAudio = () => {
     getAudioContext();
@@ -210,12 +218,13 @@ export default function App() {
       
       p.justDrawnCardId = drawnCard.id;
       p.hand = [...sortHand(p.hand), drawnCard];
+      p.actions = { ...p.actions, turns: (p.actions?.turns || 0) + 1 };
       
       s.players[s.turn] = p;
       s.phase = 'main';
+      s.hasSwappedThisTurn = false; // 手番開始時にスワップ済みフラグをリセット
       s.message = `${p.name} のターン`;
       addLog(s, p.name, '山札からドロー');
-      s.actionCount += 1;
       return s;
     });
   }, []);
@@ -262,7 +271,6 @@ export default function App() {
       if (winner) {
         triggerWinSequence(winner.id, `${winner.name} がアガリました！`);
       }
-      s.actionCount += 1;
       return s;
     });
     setSelectedHand([]);
@@ -273,6 +281,7 @@ export default function App() {
     initAudio();
     setGameState(prev => {
       if (prev.phase !== 'main' || prev.winner !== null || prev.roundOver) return prev;
+
       const s: GameState = { 
         ...prev, 
         players: [...prev.players], 
@@ -317,12 +326,77 @@ export default function App() {
       if (winner) {
         triggerWinSequence(winner.id, `${winner.name} がアガリました！`);
       }
-      s.actionCount += 1;
       return s;
     });
     setSelectedHand([]);
     setSelectedMeld(null);
   }, [triggerWinSequence]);
+
+  const doSwap = useCallback((handCardId: string, meldId: string, swapResult: SwapResult) => {
+    initAudio();
+    playSwapSound(); // スワップ専用のキラキラ効果音（ピロリン♪）
+    setGameState(prev => {
+      if (prev.phase !== 'main' || prev.winner !== null || prev.roundOver) return prev;
+      if (prev.hasSwappedThisTurn) return prev; // 1手番1回制限
+
+      const s: GameState = { 
+        ...prev, 
+        players: [...prev.players], 
+        field: [...prev.field], 
+        logs: [...prev.logs], 
+        scores: [...prev.scores],
+        hasSwappedThisTurn: true, // スワップ完了フラグ
+      };
+      const currentP = s.players[s.turn];
+      const p = { ...currentP, hand: [...currentP.hand] };
+      const meldIndex = s.field.findIndex(m => m.id === meldId);
+      if (meldIndex === -1) return prev;
+      const meld = { ...s.field[meldIndex] };
+      
+      const outCard = p.hand.find(c => c.id === handCardId);
+      if (!outCard) return prev;
+
+      // 手札から outCard を除き、replacedCard を追加してソート
+      p.hand = sortHand([...p.hand.filter(c => c.id !== handCardId), swapResult.replacedCard]);
+      p.justDrawnCardId = null;
+      p.actions = { ...p.actions, swaps: (p.actions?.swaps || 0) + 1 };
+      s.players[s.turn] = p;
+
+      // 場のセットを更新
+      const oldSymbol = getChordSymbol(meld.cards);
+      const ownerName = s.players[meld.ownerId]?.name || '誰か';
+      meld.cards = swapResult.newSequence; 
+      s.field[meldIndex] = meld;
+
+      // スワップ専用ハイライト演出（押し出し＆回収）
+      setLastSwappedMeldId(meldId);
+      setLastSwappedInCardId(swapResult.replacedCard.id);
+      setSwappedInCardId(handCardId);
+      setEjectedCardInfo({ card: swapResult.replacedCard, meldId });
+
+      setTimeout(() => {
+        setLastSwappedMeldId(null);
+        setLastSwappedInCardId(null);
+        setSwappedInCardId(null);
+        setEjectedCardInfo(null);
+      }, 1200);
+
+      const outNote = `${NOTE_NAMES[outCard.absVal % 7]}${Math.floor(outCard.absVal / 7) + 2}`;
+      const inNote = `${NOTE_NAMES[swapResult.replacedCard.absVal % 7]}${Math.floor(swapResult.replacedCard.absVal / 7) + 2}`;
+      
+      s.message = `🔄 ${p.name} が ${outNote} を出して 場の ${inNote} を回収！`;
+      addLog(s, p.name, `🔄 ${ownerName}の [${oldSymbol}] の ${inNote} を手札の ${outNote} と入れ替え → [${swapResult.newSymbol}] にアレンジ！ (手札に ${inNote} を回収)`);
+
+      // 少し遅延させて新しい和音のメロディを再生
+      setTimeout(() => {
+        playMelody(meld.cards.map(c => c.interpretedAbsVal ?? c.absVal));
+      }, 250);
+
+      return s;
+    });
+    setSelectedHand([]);
+    setSelectedMeld(null);
+  }, []);
 
   const doDiscard = useCallback((cardId: string) => {
     setGameState(prev => {
@@ -347,13 +421,14 @@ export default function App() {
       s.players[s.turn] = p;
 
       const noteIndex = discardedCard.absVal % 7;
-      const oct = Math.floor(discardedCard.absVal / 7) + 3;
+      const oct = Math.floor(discardedCard.absVal / 7) + 2;
       const noteText = `${NOTE_NAMES[noteIndex]}${oct}(${NOTE_JP[noteIndex]})`;
       addLog(s, p.name, `${noteText}を捨てた`);
       
       const winner = s.players.find(pl => pl.hand.length === 0);
       if (winner) {
         triggerWinSequence(winner.id, `${winner.name} がアガリました！`);
+        s.actionCount += 1;
         return s;
       }
 
@@ -366,6 +441,7 @@ export default function App() {
         // 山札が0枚の時の捨て札に対して誰もポン・チーできない場合は即座に流局
         if (s.deck.length === 0) {
           triggerWinSequence(null, '山札切れにより流局');
+          s.actionCount += 1;
           return s;
         }
         s.turn = (s.turn + 1) % 4;
@@ -400,7 +476,6 @@ export default function App() {
         s.turn = ((s.interruptInfo.discarderId as number) + 1) % 4;
         s.message = `${s.players[s.turn].name} のターン`;
         s.interruptInfo = null;
-        s.actionCount += 1;
         return s;
       }
     });
@@ -453,11 +528,12 @@ export default function App() {
         ...p.actions,
         pon: type === 'pon' ? (p.actions?.pon || 0) + 1 : (p.actions?.pon || 0),
         chii: type === 'chii' ? (p.actions?.chii || 0) + 1 : (p.actions?.chii || 0),
+        turns: (p.actions?.turns || 0) + 1,
       };
       s.players[playerId] = p;
       
       const symbol = type === 'pon' ? getChordSymbol(seq) : 'スケール';
-      const actionName = type === 'pon' ? `ポン` : `チー`;
+      const actionName = type === 'pon' ? 'ポン' : 'チー';
       const cardsStr = seq.map(c => {
         const val = c.interpretedAbsVal ?? c.absVal;
         const idx = val % 7;
@@ -474,6 +550,7 @@ export default function App() {
       
       s.turn = playerId;
       s.phase = 'main';
+      s.hasSwappedThisTurn = false; // 割り込み手番開始時にスワップ済みフラグをリセット
       s.interruptInfo = null;
       s.message = `${p.name} が ${discarderName} の捨て札で ${actionName}`;
       addLog(s, p.name, `${discarderName}の捨て札で ${actionName}！ [${cardsStr}] で ${symbol} を公開`);
@@ -487,8 +564,8 @@ export default function App() {
         setTimeout(() => {
           triggerWinSequence(winner.id, `${winner.name} がアガリました！`);
         }, 900);
+        s.actionCount += 1;
       }
-      s.actionCount += 1;
       return s;
     });
     setSelectedHand([]);
@@ -523,6 +600,11 @@ export default function App() {
     }
   };
 
+  const handlePlayerSwap = () => {
+    if (!currentSwapResult || selectedHand.length !== 1 || !selectedMeld || gameState.hasSwappedThisTurn) return;
+    doSwap(selectedHand[0], selectedMeld, currentSwapResult);
+  };
+
   const handlePlayerInterrupt = (type: 'pon' | 'chii') => {
     if (selectedHand.length !== 2 || !gameState.interruptInfo) return;
     const discardedCard = gameState.interruptInfo.discardedCard;
@@ -549,6 +631,75 @@ export default function App() {
         isValidAddSelection = true;
       }
     }
+  }
+
+  // 置き換え（スワップ・リハーモナイズ）判定（1手番1回まで、役出し前でも使用可能）
+  let currentSwapResult: SwapResult | null = null;
+  let isValidSwapSelection = false;
+  if (!gameState.hasSwappedThisTurn && selectedHand.length === 1 && selectedMeld !== null) {
+    const cardObj = playerHandCards.find(c => c.id === selectedHand[0]);
+    const meldObj = gameState.field.find(m => m.id === selectedMeld);
+    if (cardObj && meldObj && meldObj.type === 'chord') {
+      currentSwapResult = trySwapCardInMeld(cardObj, meldObj);
+      if (currentSwapResult !== null) {
+        isValidSwapSelection = true;
+      }
+    }
+  }
+
+  // -------------------------------------------------------------
+  // 初心者アシスト：場のセット & 手札のインタラクティブ・ナビゲーション
+  // -------------------------------------------------------------
+  const actionableMeldIds = new Set<string>();
+  const reactionAddCardIds = new Set<string>();
+  const reactionSwapCardIds = new Set<string>();
+
+  if (isPlayerTurn && isMainPhase) {
+    // 手札の各カードと場の各セットを網羅チェック
+    gameState.field.forEach(meld => {
+      let meldActionable = false;
+
+      playerHandCards.forEach(card => {
+        // 付け札判定
+        const canAdd = tryAddCardToMeld(card, meld) !== null;
+        // スワップ（リハモ）判定（1手番1回）
+        const canSwap = !gameState.hasSwappedThisTurn && meld.type === 'chord' && trySwapCardInMeld(card, meld) !== null;
+
+        if (canAdd || canSwap) {
+          meldActionable = true;
+          // 選択中のセットに反応する手札カードを分類収集
+          if (selectedMeld === meld.id) {
+            if (canAdd) reactionAddCardIds.add(card.id);
+            if (canSwap) reactionSwapCardIds.add(card.id);
+          }
+        }
+      });
+
+      // 手札が1枚選択されている場合は、その選択カードでアクション可能なセットのみを強調
+      if (selectedHand.length === 1) {
+        const selectedCard = playerHandCards.find(c => c.id === selectedHand[0]);
+        if (selectedCard) {
+          const canAdd = tryAddCardToMeld(selectedCard, meld) !== null;
+          const canSwap = !gameState.hasSwappedThisTurn && meld.type === 'chord' && trySwapCardInMeld(selectedCard, meld) !== null;
+          if (canAdd || canSwap) {
+            actionableMeldIds.add(meld.id);
+          }
+        }
+      } else if (meldActionable) {
+        actionableMeldIds.add(meld.id);
+      }
+    });
+  }
+
+  // 手札カード選択時の「連結可能性（2段階アシスト）」判定（場のセット未選択時かつ手札1〜2枚選択時）
+  let readyToMeldCardIds = new Set<string>();
+  let twoCardPairCardIds = new Set<string>();
+  if (isPlayerTurn && isMainPhase && selectedMeld === null && (selectedHand.length === 1 || selectedHand.length === 2)) {
+    const selectedObjs = playerHandCards.filter(c => selectedHand.includes(c.id));
+    const unselectedObjs = playerHandCards.filter(c => !selectedHand.includes(c.id));
+    const result = analyzeHandConnections(selectedObjs, unselectedObjs);
+    readyToMeldCardIds = result.readyToMeldIds;
+    twoCardPairCardIds = result.twoCardPairIds;
   }
 
   // 割り込み（ポン・チー）判定とスマート選択ロジック
@@ -615,6 +766,10 @@ export default function App() {
       const chordSeq = getChordInterpretation(selectedObjs);
       formedMeldName = chordSeq ? getChordSymbol(chordSeq) : 'コード';
       formedMeldType = 'chord';
+    } else if (isValidSwapSelection && currentSwapResult) {
+      const inNote = `${NOTE_NAMES[currentSwapResult.replacedCard.absVal % 7]}${Math.floor(currentSwapResult.replacedCard.absVal / 7) + 2}`;
+      formedMeldName = `🔄 ${currentSwapResult.newSymbol} にアレンジ (${inNote} 回収)`;
+      formedMeldType = 'add';
     } else if (isValidAddSelection && selectedMeld) {
       const meldObj = gameState.field.find(m => m.id === selectedMeld);
       if (meldObj && meldObj.type === 'chord' && selectedObjs.length === 1) {
@@ -672,7 +827,13 @@ export default function App() {
       playCardTone(card.interpretedAbsVal ?? card.absVal);
     }
 
-    setSelectedHand(prev => prev.includes(card.id) ? prev.filter(id => id !== card.id) : [...prev, card.id]);
+    // 場のセット（シークエンス）を選択している時は、付け札・入れ替え用の「単一選択（ワンタップ切替）モード」
+    if (selectedMeld !== null) {
+      setSelectedHand(prev => prev.includes(card.id) ? [] : [card.id]);
+    } else {
+      // 通常時は複数選択トグル（役作り用）
+      setSelectedHand(prev => prev.includes(card.id) ? prev.filter(id => id !== card.id) : [...prev, card.id]);
+    }
   };
 
   // -------------------------------------------------------------
@@ -807,7 +968,26 @@ export default function App() {
           return; // 付け札をした後は次のレンダリングで追加の付け札や捨て札を判定
         }
 
-        // 3. 役出しも付け札も完了したら、必ず手札から1枚捨ててターンを終了
+        // 3. 役出しも付け札もできなかった場合、スワップ（入れ替え）を試みる（1手番最大1回）
+        if (p.hasMelded && !gameState.hasSwappedThisTurn) {
+          let swapped = false;
+          for (const card of currentHand) {
+            for (const meld of gameState.field) {
+              if (meld.type === 'chord') {
+                const swapResult = trySwapCardInMeld(card, meld);
+                if (swapResult) {
+                  doSwap(card.id, meld.id, swapResult);
+                  swapped = true;
+                  break;
+                }
+              }
+            }
+            if (swapped) break;
+          }
+          if (swapped) return;
+        }
+
+        // 4. アクション完了後、必ず手札から1枚捨ててターンを終了
         if (currentHand.length > 0) {
           const discardTarget = currentHand[Math.floor(Math.random() * currentHand.length)];
           doDiscard(discardTarget.id);
@@ -819,7 +999,7 @@ export default function App() {
       isSubscribed = false;
       clearTimeout(timer);
     };
-  }, [gameState.turn, gameState.phase, gameState.actionCount, gameState.winner, gameState.roundOver, gameState.interruptInfo, botMode, botSpeed, doDraw, doMeld, doAdd, doDiscard, doPassInterrupt, doInterruptAction]);
+  }, [gameState.turn, gameState.phase, gameState.players, gameState.field, gameState.actionCount, gameState.winner, gameState.roundOver, gameState.interruptInfo, botMode, botSpeed, doDraw, doMeld, doAdd, doSwap, doDiscard, doPassInterrupt, doInterruptAction]);
 
   // ラウンド進行
   const nextRound = useCallback(() => {
@@ -933,36 +1113,80 @@ export default function App() {
           players={gameState.players}
           selectedMeldId={selectedMeld}
           lastAddedCardId={lastAddedCardId}
+          lastSwappedMeldId={lastSwappedMeldId}
+          swappedInCardId={swappedInCardId}
+          ejectedCardInfo={ejectedCardInfo}
+          actionableMeldIds={actionableMeldIds}
           isPlayerTurn={isPlayerTurn}
           isMainPhase={isMainPhase}
-          onSelectMeld={(meldId) => setSelectedMeld(prev => prev === meldId ? null : meldId)}
+          onSelectMeld={(meldId) => {
+            setSelectedMeld(prev => {
+              const next = prev === meldId ? null : meldId;
+              if (next !== null && selectedHand.length > 1) {
+                setSelectedHand([]);
+              }
+              return next;
+            });
+          }}
         />
       </main>
 
-      {/* プレイヤー手札 ＆ アクション操作フッター */}
-      <Hand
-        hand={playerHandCards}
-        selectedHand={selectedHand}
-        justDrawnCardId={gameState.players[0].justDrawnCardId}
-        highlightCardIds={highlightCardIds}
-        formedMeldName={formedMeldName}
-        formedMeldType={formedMeldType}
-        isPlayerTurn={isPlayerTurn}
-        isMainPhase={isMainPhase}
-        isInterruptTurn={isInterruptTurn}
-        isMyInterrupt={isMyInterrupt}
-        canPon={canPon}
-        canChii={canChii}
-        isValidScaleSelection={isValidScaleSelection}
-        isValidChordSelection={isValidChordSelection}
-        isValidAddSelection={isValidAddSelection}
-        onCardClick={handleCardClick}
-        onMeld={handlePlayerMeld}
-        onAdd={handlePlayerAdd}
-        onDiscard={doDiscard}
-        onPassInterrupt={doPassInterrupt}
-        onInterruptAction={handlePlayerInterrupt}
-      />
+      {/* インジケーター表示専用コンテナ（横1行・情報ナビ専用） */}
+      <div className="px-2 pb-1 shrink-0">
+        <IndicatorBar
+          selectedCount={selectedHand.length}
+          selectedCards={playerHandCards.filter(c => selectedHand.includes(c.id))}
+          formedMeldName={formedMeldName}
+          isPlayerTurn={isPlayerTurn}
+          isMainPhase={isMainPhase}
+          isInterruptTurn={isInterruptTurn}
+          isMyInterrupt={isMyInterrupt}
+          selectedMeldId={selectedMeld}
+          hasSwappedThisTurn={gameState.hasSwappedThisTurn}
+        />
+      </div>
+
+      {/* アクション操作専用コンテナ（横1行・ボタン専用） */}
+      <div className="px-2 pb-1 shrink-0">
+        <ActionBar
+          selectedCount={selectedHand.length}
+          isPlayerTurn={isPlayerTurn}
+          isMainPhase={isMainPhase}
+          isInterruptTurn={isInterruptTurn}
+          isMyInterrupt={isMyInterrupt}
+          canPon={canPon}
+          canChii={canChii}
+          isValidScaleSelection={isValidScaleSelection}
+          isValidChordSelection={isValidChordSelection}
+          isValidAddSelection={isValidAddSelection}
+          isValidSwapSelection={isValidSwapSelection}
+          onMeld={handlePlayerMeld}
+          onAdd={handlePlayerAdd}
+          onSwap={handlePlayerSwap}
+          onDiscard={doDiscard}
+          onPassInterrupt={doPassInterrupt}
+          onInterruptAction={handlePlayerInterrupt}
+          firstSelectedCardId={selectedHand.length === 1 ? selectedHand[0] : undefined}
+        />
+      </div>
+
+      {/* プレイヤー手札コンテナ（純粋な手札カードトレイ） */}
+      <div className="px-2 pb-2 shrink-0">
+        <Hand
+          hand={playerHandCards}
+          selectedHand={selectedHand}
+          justDrawnCardId={gameState.players[0].justDrawnCardId}
+          lastSwappedInCardId={lastSwappedInCardId}
+          highlightCardIds={highlightCardIds}
+          reactionAddCardIds={reactionAddCardIds}
+          reactionSwapCardIds={reactionSwapCardIds}
+          readyToMeldCardIds={readyToMeldCardIds}
+          twoCardPairCardIds={twoCardPairCardIds}
+          isInterruptTurn={isInterruptTurn}
+          isMyInterrupt={isMyInterrupt}
+          onCardClick={handleCardClick}
+        />
+      </div>
 
       {/* モーダル群 */}
       <StatsModal

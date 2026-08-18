@@ -220,3 +220,140 @@ export const tryAddCardToMeld = (cardObj: Card, meld: Meld): Card[] | null => {
   }
   return null;
 };
+
+export interface SwapResult {
+  replacedCard: Card;       // 場から回収されて手札に戻るカード
+  newSequence: Card[];      // 入れ替え後の新しい場のセット構成
+  newSymbol: string;        // 新しいコード名（例: "Am", "C"）
+}
+
+/**
+ * 場のセット内の1枚を手札のカードと入れ替え（スワップ・リハーモナイズ）できるかを判定します。
+ * 和音（コード）セットを対象とし、入れ替え後も正しい和音になる場合に成立します。
+ */
+export const trySwapCardInMeld = (handCard: Card, meld: Meld): SwapResult | null => {
+  if (meld.type !== 'chord' || meld.cards.length < 3) return null;
+
+  // 場の各カードを順番に入れ替え候補としてテスト
+  for (let i = 0; i < meld.cards.length; i++) {
+    const targetMeldCard = meld.cards[i];
+    // 同一カード（または同一音高）ならスキップ
+    if (targetMeldCard.id === handCard.id || targetMeldCard.absVal === handCard.absVal) continue;
+
+    // targetMeldCard を handCard に差し替えたテスト配列を作成
+    const testCards = meld.cards.map((c, idx) => idx === i ? { ...handCard } : { ...c });
+
+    // 和音として成立するかチェック
+    const newSequence = getChordInterpretation(testCards);
+    if (newSequence) {
+      const newSymbol = getChordSymbol(newSequence);
+      return {
+        replacedCard: targetMeldCard,
+        newSequence,
+        newSymbol
+      };
+    }
+  }
+
+  return null;
+};
+
+export interface ConnectionAssistResult {
+  readyToMeldIds: Set<string>; // 🥇 今の手札で3枚役が即完成するカード（グリーン光）
+  twoCardPairIds: Set<string>; // 🥈 あと1枚で役になる2枚ペア（パープル光）
+}
+
+/**
+ * 選択中のカード群に対して、
+ * 1. 今の手札で3枚役が即完成するカード（readyToMeldIds: グリーン）
+ * 2. あと1枚で役になる相性の良い2枚ペア（twoCardPairIds: パープル）
+ * を区別して判定・抽出します。
+ */
+export const analyzeHandConnections = (
+  selectedCards: Card[],
+  unselectedCards: Card[]
+): ConnectionAssistResult => {
+  const readyToMeldIds = new Set<string>();
+  const twoCardPairIds = new Set<string>();
+
+  if (selectedCards.length === 0 || selectedCards.length >= 3) {
+    return { readyToMeldIds, twoCardPairIds };
+  }
+
+  // 2枚選択時：
+  if (selectedCards.length === 2) {
+    unselectedCards.forEach(candidate => {
+      const testCards = [...selectedCards, candidate];
+      if (getChordInterpretation(testCards) !== null || getScaleInterpretation(testCards) !== null) {
+        readyToMeldIds.add(candidate.id); // 3枚目として役が即完成！
+      }
+    });
+    return { readyToMeldIds, twoCardPairIds };
+  }
+
+  // 1枚選択時（cardA）：
+  if (selectedCards.length === 1) {
+    const cardA = selectedCards[0];
+
+    // 1. 今の手札の中で実際に3枚役（コード・スケール）を組めるペアを探す ➔ readyToMeldIds
+    for (let i = 0; i < unselectedCards.length; i++) {
+      for (let j = i + 1; j < unselectedCards.length; j++) {
+        const cardB = unselectedCards[i];
+        const cardC = unselectedCards[j];
+        const testCards = [cardA, cardB, cardC];
+
+        if (getChordInterpretation(testCards) !== null || getScaleInterpretation(testCards) !== null) {
+          readyToMeldIds.add(cardB.id);
+          readyToMeldIds.add(cardC.id);
+        }
+      }
+    }
+
+    // 2. 2枚ペア（あと1枚引けば役になる相性の良い近隣カード）を探す ➔ twoCardPairIds
+    const DIATONIC_CHORD_NOTE_SETS = [
+      [0, 2, 4], // C
+      [1, 3, 5], // Dm
+      [2, 4, 6], // Em
+      [3, 5, 0], // F
+      [4, 6, 1], // G
+      [5, 0, 2], // Am
+      [6, 1, 3], // Bdim
+    ];
+
+    const n1 = cardA.absVal % 7;
+
+    unselectedCards.forEach(candidate => {
+      if (readyToMeldIds.has(candidate.id)) return;
+
+      const n2 = candidate.absVal % 7;
+      const absDiff = Math.abs(cardA.absVal - candidate.absVal);
+
+      // 近隣オクターブ（音高差が1オクターブ以内: absDiff <= 7）での相性をチェック
+      if (absDiff <= 7) {
+        // スケール2音ペア（隣接音または1音空き）
+        const isScalePair = absDiff === 1 || absDiff === 2;
+
+        // コード2音ペア（同じダイアトニック和音に含まれる音程）
+        const isChordPair = (absDiff === 2 || absDiff === 4 || absDiff === 3 || absDiff === 5) &&
+          DIATONIC_CHORD_NOTE_SETS.some(chord => chord.includes(n1) && chord.includes(n2));
+
+        if (isScalePair || isChordPair) {
+          twoCardPairIds.add(candidate.id);
+        }
+      }
+    });
+  }
+
+  return { readyToMeldIds, twoCardPairIds };
+};
+
+// 互換性のためのエイリアス
+export const getConnectedCandidateCardIds = (
+  selectedCards: Card[],
+  unselectedCards: Card[]
+): Set<string> => {
+  const { readyToMeldIds, twoCardPairIds } = analyzeHandConnections(selectedCards, unselectedCards);
+  return new Set([...readyToMeldIds, ...twoCardPairIds]);
+};
+
+

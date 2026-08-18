@@ -14,12 +14,13 @@ const RULES_DATA: RuleSection[] = [
     title: "1. ゲームの目的とカード構成",
     content: (
       <div className="space-y-2.5 text-xs text-amber-100/90 leading-relaxed select-none">
-        <p>「メロディ・ブリッジ」は、音楽のコード（和音）やスケール（音階）を作って手札を減らしていくトランプゲームです。</p>
+        <p>「メロディ・ブリッジ」は、音楽のコード（和音）やスケール（音階）を作って手札を減らしていく音楽トランプゲームです。</p>
         
         <p><strong className="text-amber-300">【カードの構成】</strong></p>
         <div className="bg-[#26180f] p-2.5 rounded-lg border border-amber-900/60 shadow-inner">
           1オクターブはピアノの白鍵（ドレミファソラシ）の7音のみで構成されています。<br/>
-          「7音 × C2〜B5の4オクターブ × 各音2枚」＝ <strong className="text-amber-300 font-black">計56枚</strong> を使用します。
+          「7音 × C2〜B5の4オクターブ × 各音2枚」＝ <strong className="text-amber-300 font-black">計56枚</strong> を使用します。<br/>
+          各プレイヤーに手札7枚が配られてゲームが始まります。
         </div>
       </div>
     )
@@ -34,8 +35,8 @@ const RULES_DATA: RuleSection[] = [
         <div className="bg-[#26180f] p-2.5 rounded-lg border border-amber-900/60 shadow-inner">
           <p className="font-black text-amber-300 text-xs mb-0.5">♪ コード（和音）</p>
           <p className="text-[11px]">和音（3〜4音）の構成音を揃えます。順番はバラバラ（転回形）でも構いません。</p>
-          <p className="text-[10px] text-amber-300/80 font-bold mt-0.5">※クローズドボイシング（1オクターブ以内）のみ対応。</p>
-          <p className="text-[10px] text-amber-200/70">例：ド・ミ・ソ (C) / ミ・ソ・シ・ド (CM7の転回形)</p>
+          <p className="text-[10px] text-amber-300/80 font-bold mt-0.5">※1オクターブ以内のクローズドボイシングに対応。</p>
+          <p className="text-[10px] text-amber-200/70">例：ド・ミ・ソ (C) / レ・ファ・ラ (Dm) / ミ・ソ・シ・ド (CM7転回形)</p>
         </div>
         
         {/* スケール */}
@@ -48,22 +49,64 @@ const RULES_DATA: RuleSection[] = [
     )
   },
   {
-    title: "3. ラウンドと勝敗（失点計算）",
+    title: "3. 付け札 ＆ 入れ替え（★重要）",
+    content: (
+      <div className="space-y-2.5 text-xs text-amber-100/90 leading-relaxed select-none">
+        <p>場に出ているセットを活用して手札を有利に減らすことができます。</p>
+        
+        {/* 付け札 */}
+        <div className="bg-[#26180f] p-2 rounded-lg border border-emerald-800/60 shadow-inner">
+          <p className="font-black text-emerald-300 text-xs mb-0.5">🌿 付け札（Add）</p>
+          <p className="text-[11px]">場のセットに手札のカードを1枚追加します（1手番に何枚でも可能）。</p>
+          <ul className="list-disc pl-4 text-[10px] text-emerald-200/80 mt-0.5">
+            <li>コード：3和音に4音目を追加して7thコード等へ進化（最大4枚）</li>
+            <li>スケール：音階の両端に隣り合う音を追加して延長</li>
+          </ul>
+        </div>
+
+        {/* 入れ替え */}
+        <div className="bg-[#26180f] p-2 rounded-lg border border-cyan-800/60 shadow-inner">
+          <p className="font-black text-cyan-300 text-xs mb-0.5">🔄 入れ替え（スワップ・リハーモナイズ）</p>
+          <p className="text-[11px]">場の和音の1枚を手札の1枚と交換し、新たな和音へアレンジできます！</p>
+          <ul className="list-disc pl-4 text-[10px] text-cyan-200/80 mt-0.5">
+            <li>押し出された場のカードは<strong className="text-cyan-300">手札に回収</strong>されます。</li>
+            <li>1手番につき最大1回まで。初手の手札事故時でも役出し前から使用可能です！</li>
+          </ul>
+        </div>
+      </div>
+    )
+  },
+  {
+    title: "4. 割り込み（ポン・チー）と鳴き制限",
+    content: (
+      <div className="space-y-2 text-xs text-amber-100/90 leading-relaxed select-none">
+        <p>他人が捨てたカードをもらってセットを完成させることができます。</p>
+        
+        <div className="bg-[#26180f] p-2 rounded-lg border border-amber-900/60 text-[10.5px] shadow-inner space-y-1">
+          <p><strong className="text-amber-300">【ポン（コード）】</strong> 誰の捨て札からでもOK（捨て札1枚＋手札2枚）</p>
+          <p><strong className="text-amber-300">【チー（スケール）】</strong> <strong className="text-amber-200">直前の人（左隣・上家）</strong>の捨て札からのみ（捨て札1枚＋手札2枚）</p>
+        </div>
+
+        <div className="bg-[#331818] p-2 rounded-lg border border-red-500/60 text-[10.5px] text-red-200 shadow-inner">
+          <strong className="text-red-300 font-bold">⚠️ 鳴きアガリ禁止ルール</strong><br/>
+          手札が2枚（鳴いたら手札が0枚になる状態）の時は、ポン・チーによる即アガリはできません。自力ドローや付け札・役出しでアガりましょう。
+        </div>
+      </div>
+    )
+  },
+  {
+    title: "5. ラウンドと勝敗（失点計算）",
     content: (
       <div className="space-y-2 text-xs text-amber-100/90 leading-relaxed select-none">
         <p><strong className="text-amber-300">【ラウンドの終了条件】</strong></p>
-        <ul className="list-disc pl-4 space-y-1 text-[11px]">
+        <ul className="list-disc pl-4 space-y-0.5 text-[11px]">
           <li>誰かの手札が0枚になった時（アガリ）</li>
-          <li><strong className="text-amber-300">山札が0枚の時の捨て札に対して誰もポン・チーしなかった時（流局）</strong></li>
+          <li>山札0枚時の捨て札に対して誰もポン・チーしなかった時（流局）</li>
         </ul>
 
-        <div className="bg-[#26180f] p-2 rounded-lg border border-amber-900/60 text-[10.5px] text-amber-200/80 shadow-inner">
-          ※山札が0枚になっても、捨て札を拾って手札（失点）を減らす連鎖チャンスが続きます。誰も拾えなくなった瞬間にラウンド終了となります。
-        </div>
-        
         <div>
           <p><strong className="text-amber-300">【ポイント計算】</strong></p>
-          <p className="mt-0.5 text-[11px]">ラウンド終了時、手札に残っている枚数がそのまま「ペナルティ失点」として加算されます（アガった人は0点）。</p>
+          <p className="mt-0.5 text-[11px]">ラウンド終了時、手札に残っている枚数がそのまま「ペナルティ失点」となります（アガった人は0点）。</p>
         </div>
 
         <div className="bg-[#26180f] p-2 rounded-lg border border-amber-600/50 shadow-inner text-center">
@@ -71,30 +114,6 @@ const RULES_DATA: RuleSection[] = [
             全4ラウンド終了時、合計失点が<br/>一番少ない人の総合優勝！
           </p>
         </div>
-      </div>
-    )
-  },
-  {
-    title: "4. 割り込みルール（ポン・チー）",
-    content: (
-      <div className="space-y-2.5 text-xs text-amber-100/90 leading-relaxed select-none">
-        <p>他人がカードを捨てた瞬間、そのカードをもらってセットを完成させることができます。</p>
-        
-        <div className="bg-[#26180f] p-2.5 rounded-lg border border-amber-900/60 text-[11px] shadow-inner">
-          <strong className="text-amber-300 font-black">【重要】割り込みは「捨て札1枚＋手札2枚」の3枚組のみ</strong><br/>
-          手札から一度に出せるのは2枚までです。いきなり4枚組は作れません。
-        </div>
-
-        <ul className="list-disc pl-4 space-y-1 text-[11px]">
-          <li>
-            <strong className="text-amber-300">ポン（コード作成）：</strong><br/>
-            誰の捨て札からでも可能です。手札2枚と合わせてコードが作れる場合に割り込めます。
-          </li>
-          <li>
-            <strong className="text-amber-300">チー（スケール作成）：</strong><br/>
-            <strong className="text-amber-200">直前の順番の人（左隣・上家）</strong>の捨て札からのみ可能です。手札2枚と合わせてスケールが作れる場合に割り込めます。
-          </li>
-        </ul>
       </div>
     )
   }
@@ -105,17 +124,24 @@ const RULES_DATA: RuleSection[] = [
 // -------------------------------------------------------------
 const CONTROLS_DATA: RuleSection[] = [
   {
-    title: "1. カードを引く ＆ 捨てる",
+    title: "1. ターンの基本フロー",
     content: (
-      <div className="space-y-2.5 text-xs text-amber-100/90 leading-relaxed select-none">
-        <div className="bg-[#26180f] p-2.5 rounded-lg border border-amber-900/60 shadow-inner">
-          <strong className="text-amber-300 block mb-0.5">🎴 カードを引く（ドロー）</strong>
-          自分のターンが来たら、画面上部・右側の<strong className="text-amber-300">「山札」をタップ</strong>してカードを1枚引きます。
-        </div>
+      <div className="space-y-2 text-xs text-amber-100/90 leading-relaxed select-none">
+        <p>自分の手番は以下の3つのステップで進行します。</p>
 
-        <div className="bg-[#26180f] p-2.5 rounded-lg border border-amber-900/60 shadow-inner">
-          <strong className="text-amber-300 block mb-0.5">🗑️ カードを捨てる（ターン終了）</strong>
-          手札から不要なカードを<strong className="text-amber-300">1枚タップ</strong>して選び、右下の<strong className="text-amber-300">「捨てる」ボタン</strong>を押します。
+        <div className="space-y-1.5 text-[11px]">
+          <div className="bg-[#26180f] p-2 rounded-lg border border-amber-900/60 shadow-inner">
+            <strong className="text-amber-300 block">① 引く（ドロー）：</strong>
+            画面上部の<strong className="text-amber-300">「山札」</strong>をタップして1枚引きます。
+          </div>
+          <div className="bg-[#26180f] p-2 rounded-lg border border-amber-900/60 shadow-inner">
+            <strong className="text-amber-300 block">② アクション（任意）：</strong>
+            「役出し」「付け札」「入れ替え」を好きな順序で行えます。
+          </div>
+          <div className="bg-[#26180f] p-2 rounded-lg border border-amber-900/60 shadow-inner">
+            <strong className="text-amber-300 block">③ 捨てる（ディスカード）：</strong>
+            手札から不要な1枚を選び、<strong className="text-amber-300">「捨てる」</strong>を押してターン終了。
+          </div>
         </div>
       </div>
     )
@@ -124,42 +150,60 @@ const CONTROLS_DATA: RuleSection[] = [
     title: "2. 役を場に出す操作（コード・スケール）",
     content: (
       <div className="space-y-2.5 text-xs text-amber-100/90 leading-relaxed select-none">
-        <p>手札で3枚以上のコードやスケールが完成したら、場に公開できます。</p>
+        <p>手札で3枚以上のコードやスケールが揃ったら、場に公開できます。</p>
 
         <ol className="list-decimal pl-4 space-y-1.5 bg-[#26180f] p-2.5 rounded-lg border border-amber-900/60 shadow-inner text-[11px]">
-          <li>手札から役を構成するカード（3枚以上）をタップして選択</li>
+          <li>手札から役を作るカード（3枚以上）をタップして選択</li>
           <li>役が完成すると、右下の<strong className="text-amber-300">「コード」</strong>または<strong className="text-amber-300">「スケール」</strong>ボタンが光ります</li>
-          <li>ボタンを押すと、場にセットが公開されます</li>
+          <li>ボタンを押すと、場にセットが公開され美しい和音が響きます</li>
         </ol>
       </div>
     )
   },
   {
-    title: "3. 付け札の操作方法（★重要）",
+    title: "3. 付け札の操作方法",
     content: (
-      <div className="space-y-2.5 text-xs text-amber-100/90 leading-relaxed select-none">
-        <p>すでに場に出ている自分や相手のセットに、手札からカードを1枚追加できます（1ターンに何度でも可能）。</p>
+      <div className="space-y-2 text-xs text-amber-100/90 leading-relaxed select-none">
+        <p>場に出ているセットに、手札からカードを1枚追加する操作です。</p>
 
-        <div className="bg-[#26180f] p-3 rounded-xl border-2 border-amber-500/80 shadow-inner">
-          <strong className="text-amber-300 text-xs block mb-1">💡 付け札の3ステップ操作</strong>
+        <div className="bg-[#26180f] p-2.5 rounded-xl border border-emerald-500/80 shadow-inner space-y-1">
+          <strong className="text-emerald-300 text-xs block">💡 付け札の3ステップ</strong>
           <ol className="list-decimal pl-4 space-y-1 text-amber-100 text-[11px]">
-            <li>手札から追加したいカードを<strong className="text-amber-300">1枚タップ</strong>して選択</li>
-            <li>場にある追加先のセットを<strong className="text-amber-300">タップして選択</strong>（金枠で囲まれます）</li>
-            <li>右下の<strong className="text-amber-300 font-black">「付け札」ボタン</strong>を押すと、カードがシュッと差し込まれます</li>
+            <li>手札から追加したいカードを<strong className="text-emerald-300">1枚タップ</strong></li>
+            <li>場にある追加先のセットを<strong className="text-emerald-300">タップして選択</strong>（金枠で囲まれます）</li>
+            <li>右下の<strong className="text-emerald-300 font-black">「付け札」ボタン</strong>を押すとカードが差し込まれます</li>
           </ol>
         </div>
       </div>
     )
   },
   {
-    title: "4. ポン・チーの操作方法",
+    title: "4. 🔄 入れ替え（スワップ）の操作方法",
+    content: (
+      <div className="space-y-2 text-xs text-amber-100/90 leading-relaxed select-none">
+        <p>場の和音と手札のカードを1対1で入れ替えて、新たな和音へアレンジする操作です。</p>
+
+        <div className="bg-[#26180f] p-2.5 rounded-xl border border-cyan-500/80 shadow-inner space-y-1">
+          <strong className="text-cyan-300 text-xs block">💡 入れ替えの3ステップ</strong>
+          <ol className="list-decimal pl-4 space-y-1 text-amber-100 text-[11px]">
+            <li>手札から場に出したいカードを<strong className="text-cyan-300">1枚タップ</strong></li>
+            <li>場にある和音セットを<strong className="text-cyan-300">タップして選択</strong>（金枠で囲まれます）</li>
+            <li>条件を満たすと「🔄 ○○にアレンジ (○○回収)」バッジが表示され、<strong className="text-cyan-300 font-black">「入れ替え」ボタン（水色）</strong>が点灯！</li>
+            <li>ボタンを押すと、場の古いカードが上へ押し出され、手札に回収されます</li>
+          </ol>
+        </div>
+      </div>
+    )
+  },
+  {
+    title: "5. ポン・チーの操作方法",
     content: (
       <div className="space-y-2.5 text-xs text-amber-100/90 leading-relaxed select-none">
         <p>他人がカードを捨てた瞬間に割り込む操作方法です。</p>
 
         <ol className="list-decimal pl-4 space-y-1.5 bg-[#26180f] p-2.5 rounded-lg border border-amber-900/60 shadow-inner text-[11px]">
           <li>ポン・チーができる時、手札の使えるカードが持ち上がります</li>
-          <li>使えるカードをタップすると、鳴きに使う2枚の組み合わせが自動で選ばれます（同じカードを再度タップで別のペアに切り替え）</li>
+          <li>使えるカードをタップすると、鳴きに使う2枚のペアが自動で選ばれます（同じカードを再度タップで別のペアに切り替え）</li>
           <li>右下の<strong className="text-amber-300">「ポン」</strong>または<strong className="text-amber-300">「チー」</strong>ボタンを押して割り込みます（不要なら「パス」）</li>
         </ol>
       </div>

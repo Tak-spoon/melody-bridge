@@ -1,5 +1,5 @@
 import { Card, GameState, Meld } from '../types/game';
-import { getChordSymbol, getChordInterpretation, getScaleInterpretation, tryAddCardToMeld } from './musicTheory';
+import { getChordSymbol, getChordInterpretation, getScaleInterpretation, tryAddCardToMeld, trySwapCardInMeld } from './musicTheory';
 import { createDeck, getCombinations, getValidPonCombs, getValidChiiCombs } from './gameLogic';
 
 export interface GameStats {
@@ -20,10 +20,10 @@ export interface GameStats {
     chii: number;
   };
   playerActions: [
-    { melds: number; adds: number; pon: number; chii: number },
-    { melds: number; adds: number; pon: number; chii: number },
-    { melds: number; adds: number; pon: number; chii: number },
-    { melds: number; adds: number; pon: number; chii: number }
+    { melds: number; adds: number; swaps: number; pon: number; chii: number; turns: number },
+    { melds: number; adds: number; swaps: number; pon: number; chii: number; turns: number },
+    { melds: number; adds: number; swaps: number; pon: number; chii: number; turns: number },
+    { melds: number; adds: number; swaps: number; pon: number; chii: number; turns: number }
   ];
   lastUpdated: string;
 }
@@ -48,10 +48,10 @@ export const getDefaultStats = (): GameStats => ({
     chii: 0,
   },
   playerActions: [
-    { melds: 0, adds: 0, pon: 0, chii: 0 },
-    { melds: 0, adds: 0, pon: 0, chii: 0 },
-    { melds: 0, adds: 0, pon: 0, chii: 0 },
-    { melds: 0, adds: 0, pon: 0, chii: 0 },
+    { melds: 0, adds: 0, swaps: 0, pon: 0, chii: 0, turns: 0 },
+    { melds: 0, adds: 0, swaps: 0, pon: 0, chii: 0, turns: 0 },
+    { melds: 0, adds: 0, swaps: 0, pon: 0, chii: 0, turns: 0 },
+    { melds: 0, adds: 0, swaps: 0, pon: 0, chii: 0, turns: 0 },
   ],
   lastUpdated: new Date().toISOString(),
 });
@@ -76,7 +76,14 @@ export const loadStats = (): GameStats => {
         ...getDefaultStats().interruptsCount,
         ...(parsed.interruptsCount || {}),
       },
-      playerActions: parsed.playerActions || getDefaultStats().playerActions,
+      playerActions: (parsed.playerActions || getDefaultStats().playerActions).map((act: any) => ({
+        melds: act.melds || 0,
+        adds: act.adds || 0,
+        swaps: act.swaps || 0,
+        pon: act.pon || 0,
+        chii: act.chii || 0,
+        turns: act.turns || 0,
+      })) as GameStats['playerActions'],
     };
   } catch (e) {
     console.error('Failed to load stats:', e);
@@ -148,26 +155,34 @@ export const recordGameRound = (
       {
         melds: (currentStats.playerActions?.[0]?.melds || 0) + (state.players[0]?.actions?.melds || 0),
         adds: (currentStats.playerActions?.[0]?.adds || 0) + (state.players[0]?.actions?.adds || 0),
+        swaps: (currentStats.playerActions?.[0]?.swaps || 0) + (state.players[0]?.actions?.swaps || 0),
         pon: (currentStats.playerActions?.[0]?.pon || 0) + (state.players[0]?.actions?.pon || 0),
         chii: (currentStats.playerActions?.[0]?.chii || 0) + (state.players[0]?.actions?.chii || 0),
+        turns: (currentStats.playerActions?.[0]?.turns || 0) + (state.players[0]?.actions?.turns || 0),
       },
       {
         melds: (currentStats.playerActions?.[1]?.melds || 0) + (state.players[1]?.actions?.melds || 0),
         adds: (currentStats.playerActions?.[1]?.adds || 0) + (state.players[1]?.actions?.adds || 0),
+        swaps: (currentStats.playerActions?.[1]?.swaps || 0) + (state.players[1]?.actions?.swaps || 0),
         pon: (currentStats.playerActions?.[1]?.pon || 0) + (state.players[1]?.actions?.pon || 0),
         chii: (currentStats.playerActions?.[1]?.chii || 0) + (state.players[1]?.actions?.chii || 0),
+        turns: (currentStats.playerActions?.[1]?.turns || 0) + (state.players[1]?.actions?.turns || 0),
       },
       {
         melds: (currentStats.playerActions?.[2]?.melds || 0) + (state.players[2]?.actions?.melds || 0),
         adds: (currentStats.playerActions?.[2]?.adds || 0) + (state.players[2]?.actions?.adds || 0),
+        swaps: (currentStats.playerActions?.[2]?.swaps || 0) + (state.players[2]?.actions?.swaps || 0),
         pon: (currentStats.playerActions?.[2]?.pon || 0) + (state.players[2]?.actions?.pon || 0),
         chii: (currentStats.playerActions?.[2]?.chii || 0) + (state.players[2]?.actions?.chii || 0),
+        turns: (currentStats.playerActions?.[2]?.turns || 0) + (state.players[2]?.actions?.turns || 0),
       },
       {
         melds: (currentStats.playerActions?.[3]?.melds || 0) + (state.players[3]?.actions?.melds || 0),
         adds: (currentStats.playerActions?.[3]?.adds || 0) + (state.players[3]?.actions?.adds || 0),
+        swaps: (currentStats.playerActions?.[3]?.swaps || 0) + (state.players[3]?.actions?.swaps || 0),
         pon: (currentStats.playerActions?.[3]?.pon || 0) + (state.players[3]?.actions?.pon || 0),
         chii: (currentStats.playerActions?.[3]?.chii || 0) + (state.players[3]?.actions?.chii || 0),
+        turns: (currentStats.playerActions?.[3]?.turns || 0) + (state.players[3]?.actions?.turns || 0),
       },
     ],
   };
@@ -213,10 +228,10 @@ export const runBatchSimulation = (
     },
     interruptsCount: { ...baseStats.interruptsCount },
     playerActions: [
-      { ...(baseStats.playerActions?.[0] || { melds: 0, adds: 0, pon: 0, chii: 0 }) },
-      { ...(baseStats.playerActions?.[1] || { melds: 0, adds: 0, pon: 0, chii: 0 }) },
-      { ...(baseStats.playerActions?.[2] || { melds: 0, adds: 0, pon: 0, chii: 0 }) },
-      { ...(baseStats.playerActions?.[3] || { melds: 0, adds: 0, pon: 0, chii: 0 }) },
+      { ...(baseStats.playerActions?.[0] || { melds: 0, adds: 0, swaps: 0, pon: 0, chii: 0, turns: 0 }) },
+      { ...(baseStats.playerActions?.[1] || { melds: 0, adds: 0, swaps: 0, pon: 0, chii: 0, turns: 0 }) },
+      { ...(baseStats.playerActions?.[2] || { melds: 0, adds: 0, swaps: 0, pon: 0, chii: 0, turns: 0 }) },
+      { ...(baseStats.playerActions?.[3] || { melds: 0, adds: 0, swaps: 0, pon: 0, chii: 0, turns: 0 }) },
     ],
   };
 
@@ -226,18 +241,24 @@ export const runBatchSimulation = (
   for (let r = 0; r < roundsCount; r++) {
     const deck = createDeck(); // 56枚
     const hands: Card[][] = [[], [], [], []];
+    const hasMeldedList: boolean[] = [false, false, false, false];
+    const startPlayer = r % PLAYERS; // 本編ゲーム同様、P0 -> P1 -> P2 -> P3 と親が1局ごとに完全交代
+
+    // 親から順番に1枚ずつ配牌
     for (let i = 0; i < HAND_SIZE * PLAYERS; i++) {
-      hands[i % PLAYERS].push(deck.pop()!);
+      const pIdx = (startPlayer + i) % PLAYERS;
+      hands[pIdx].push(deck.pop()!);
     }
 
     const field: Meld[] = [];
-    let turn = 0;
+    let turn = startPlayer; // 親からスタート
     let totalTurns = 0;
     let roundWinner: number | null = null;
     const MAX_TURNS = 200;
 
     while (totalTurns < MAX_TURNS) {
       const hand = hands[turn];
+      updated.playerActions[turn].turns += 1; // 手番回数（巡数）を加算
 
       // ドロー
       if (deck.length > 0) {
@@ -258,6 +279,7 @@ export const runBatchSimulation = (
               updated.meldsCount.total += 1;
               updated.meldsCount.scale += 1;
               updated.playerActions[turn].melds += 1;
+              hasMeldedList[turn] = true;
               for (const c of comb) {
                 const idx = hand.findIndex(h => h.id === c.id);
                 if (idx !== -1) hand.splice(idx, 1);
@@ -272,6 +294,7 @@ export const runBatchSimulation = (
                 updated.meldsCount.total += 1;
                 updated.meldsCount.chord += 1;
                 updated.playerActions[turn].melds += 1;
+                hasMeldedList[turn] = true;
                 const sym = getChordSymbol(chordSeq);
                 updated.meldsCount.chordTypes[sym] = (updated.meldsCount.chordTypes[sym] || 0) + 1;
                 for (const c of comb) {
@@ -316,6 +339,27 @@ export const runBatchSimulation = (
         break;
       }
 
+      // スワップ（役出し済みの場合、手札のカードと場の和音を入れ替え）
+      if (hasMeldedList[turn]) {
+        for (let ci = 0; ci < hand.length; ci++) {
+          let swapped = false;
+          for (const meld of field) {
+            if (meld.type === 'chord') {
+              const swapResult = trySwapCardInMeld(hand[ci], meld);
+              if (swapResult) {
+                // 手札を入れ替え
+                hand.splice(ci, 1, swapResult.replacedCard);
+                meld.cards = swapResult.newSequence;
+                updated.playerActions[turn].swaps += 1;
+                swapped = true;
+                break;
+              }
+            }
+          }
+          if (swapped) break;
+        }
+      }
+
       // 捨て札
       const discardIdx = Math.floor(Math.random() * hand.length);
       const discardedCard = hand.splice(discardIdx, 1)[0];
@@ -331,6 +375,8 @@ export const runBatchSimulation = (
       // ポン判定（誰からでも）
       for (let i = 1; i < 4; i++) {
         const pId = (discarderId + i) % PLAYERS;
+        if (hands[pId].length <= 2) continue; // 鳴きアガリ禁止（手札2枚時は鳴けない）
+
         const ponCombs = getValidPonCombs(hands[pId], discardedCard);
         if (ponCombs.length > 0) {
           const pairIds = ponCombs[0];
@@ -345,16 +391,11 @@ export const runBatchSimulation = (
             updated.meldsCount.chordTypes[sym] = (updated.meldsCount.chordTypes[sym] || 0) + 1;
             updated.interruptsCount.pon += 1;
             updated.playerActions[pId].pon += 1;
+            hasMeldedList[pId] = true;
 
             for (const c of pairObjs) {
               const idx = hands[pId].findIndex(h => h.id === c.id);
               if (idx !== -1) hands[pId].splice(idx, 1);
-            }
-
-            if (hands[pId].length === 0) {
-              roundWinner = pId;
-              interrupted = true;
-              break;
             }
 
             // ポン後捨て札
@@ -377,7 +418,7 @@ export const runBatchSimulation = (
       if (roundWinner !== null) break;
 
       // チー判定（上家のみ）
-      if (!interrupted) {
+      if (!interrupted && hands[nextPlayer].length > 2) {
         const chiiCombs = getValidChiiCombs(hands[nextPlayer], discardedCard);
         if (chiiCombs.length > 0) {
           const pairIds = chiiCombs[0];
@@ -390,15 +431,11 @@ export const runBatchSimulation = (
             updated.meldsCount.scale += 1;
             updated.interruptsCount.chii += 1;
             updated.playerActions[nextPlayer].chii += 1;
+            hasMeldedList[nextPlayer] = true;
 
             for (const c of pairObjs) {
               const idx = hands[nextPlayer].findIndex(h => h.id === c.id);
               if (idx !== -1) hands[nextPlayer].splice(idx, 1);
-            }
-
-            if (hands[nextPlayer].length === 0) {
-              roundWinner = nextPlayer;
-              break;
             }
 
             const di = Math.floor(Math.random() * hands[nextPlayer].length);

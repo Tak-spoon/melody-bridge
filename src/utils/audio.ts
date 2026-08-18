@@ -213,3 +213,23 @@ export const playCardTone = (absVal: number, customCtx?: AudioContext | null): v
   const now = ctx.currentTime;
   playPianoNote(ctx, freq, now, 0.8, 0.22);
 };
+
+/**
+ * 場のカード入れ替え（スワップ・リハーモナイズ）時の専用キラキラ効果音
+ */
+export const playSwapSound = (customCtx?: AudioContext | null): void => {
+  const ctx = customCtx || getAudioContext();
+  if (!ctx) return;
+
+  if (ctx.state === 'suspended') {
+    ctx.resume();
+  }
+
+  const now = ctx.currentTime;
+  // キラキラと上昇・下降するスワップチャイム（G5 -> C6 -> E6 -> G6）
+  const swapFreqs = [783.99, 1046.50, 1318.51, 1567.98];
+  swapFreqs.forEach((freq, i) => {
+    playPianoNote(ctx, freq, now + i * 0.06, 0.6, 0.16);
+  });
+};
+

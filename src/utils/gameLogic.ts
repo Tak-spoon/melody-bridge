@@ -36,7 +36,7 @@ export const sortHand = (hand: Card[]): Card[] => {
  */
 export const setupRound = (scores: number[] = [0, 0, 0, 0], roundNum: number = 1): GameState => {
   const deck = createDeck();
-  const defaultActions = { melds: 0, adds: 0, pon: 0, chii: 0 };
+  const defaultActions = { melds: 0, adds: 0, swaps: 0, pon: 0, chii: 0, turns: 0 };
   const players: Player[] = [
     { id: 0, name: 'あなた', hand: [], hasMelded: false, justDrawnCardId: null, isCPU: false, actions: { ...defaultActions } },
     { id: 1, name: 'CPU 1', hand: [], hasMelded: false, justDrawnCardId: null, isCPU: true, actions: { ...defaultActions } },
@@ -73,7 +73,8 @@ export const setupRound = (scores: number[] = [0, 0, 0, 0], roundNum: number = 1
     logs: [
       { player: 'システム', text: `[R${roundNum}] ラウンド開始。先手: ${players[startingTurn].name}` }
     ],
-    actionCount: 0
+    actionCount: 0,
+    hasSwappedThisTurn: false
   };
 };
 
@@ -133,6 +134,10 @@ export const checkInterrupts = (state: GameState, discarderId: number, discarded
   for (let i = 1; i < 4; i++) {
     const pId = (discarderId + i) % 4;
     const hand = state.players[pId].hand;
+
+    // 手札が2枚以下の場合、鳴きアガリ（ポン・チーで手札0枚になるアガリ）は禁止（本家セブンブリッジ仕様）
+    if (hand.length <= 2) continue;
+
     const actions: { type: 'pon' | 'chii'; validCombs: string[][] }[] = [];
     
     // ポン（誰からでもOK）
