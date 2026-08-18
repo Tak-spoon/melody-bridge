@@ -275,31 +275,17 @@ body {
   animation: gold-shimmer-sweep 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-/* 🎴 遊戯王マスターデュエル風：山札から手札へシュッと飛んでくるドローアニメーション（0.30秒） */
+/* 🎴 山札置き場（右上）から手札のツモ位置へスムーズに飛んでくるドローアニメーション（0.38秒） */
 @keyframes draw-fly-in {
   0% {
-    transform: translate(clamp(50px, 15vw, 140px), clamp(-220px, -30vh, -150px)) scale(0.72) rotate(7deg);
-    opacity: 0.5;
-    filter: drop-shadow(0 15px 25px rgba(0, 0, 0, 0.6));
-  }
-  65% {
-    transform: translate(0, -6px) scale(1.04) rotate(-1.5deg);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(0, 0) scale(1) rotate(0deg);
-    opacity: 1;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
-  }
-}
-
-/* 🎴 山札置き場から手札のツモ位置へゆっくりふんわり飛んでくるドローアニメーション（0.44秒） */
-@keyframes draw-fly-in {
-  0% {
-    /* 画面最上部・左側の山札（Deck）の真上からふわりと出発 */
-    transform: translate(clamp(-95px, -15vw, -65px), clamp(-620px, -77vh, -440px)) scale(0.86) rotate(-2.5deg);
-    opacity: 0.95;
+    /* 画面上部・右側の山札（Deck）の真上から正確に出発 */
+    transform: translate(clamp(40px, 12vw, 90px), clamp(-520px, -65vh, -380px)) scale(0.85) rotate(4deg);
+    opacity: 0.9;
     filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.55));
+  }
+  60% {
+    transform: translate(0, -4px) scale(1.02) rotate(-1deg);
+    opacity: 1;
   }
   100% {
     transform: translate(0, 0) scale(1) rotate(0deg);
@@ -309,7 +295,7 @@ body {
 }
 
 .animate-draw-fly-in {
-  animation: draw-fly-in 0.44s cubic-bezier(0.25, 1, 0.4, 1) forwards;
+  animation: draw-fly-in 0.38s cubic-bezier(0.25, 1, 0.4, 1) forwards;
   will-change: transform, opacity;
 }
 

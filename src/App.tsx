@@ -23,8 +23,18 @@ import { DiscardModal } from './components/Modals/DiscardModal';
 import { LogModal } from './components/Modals/LogModal';
 import { GameOverModal } from './components/Modals/GameOverModal';
 import { StatsModal } from './components/Modals/StatsModal';
+import { TitleScreen } from './components/TitleScreen';
+import { PuzzleSelect } from './components/Puzzle/PuzzleSelect';
+import { PuzzlePlay } from './components/Puzzle/PuzzlePlay';
+import { PuzzleStage } from './types/puzzle';
+
+export type ScreenMode = 'title' | 'battle' | 'puzzle-select' | 'puzzle-play';
 
 export default function App() {
+  const [screenMode, setScreenMode] = useState<ScreenMode>('title');
+  const [initialPuzzleChapter, setInitialPuzzleChapter] = useState<string>('tutorial');
+  const [selectedPuzzleStage, setSelectedPuzzleStage] = useState<PuzzleStage | null>(null);
+
   const [gameState, setGameState] = useState<GameState>(() => setupRound());
   const [selectedHand, setSelectedHand] = useState<string[]>([]);
   const [selectedMeld, setSelectedMeld] = useState<string | null>(null);
@@ -1180,118 +1190,167 @@ export default function App() {
 
   return (
     <div className="relative w-full max-w-md h-full flex flex-col overflow-hidden shadow-2xl bg-[#170e08]">
-      {/* ヘッダー */}
-      <Header
-        round={gameState.round}
-        onOpenRules={() => setShowRuleModal(true)}
-        onOpenOptions={() => setShowOptionModal(true)}
-        onOpenLogs={() => setShowLogModal(true)}
-      />
-
-      {/* プレイヤー情報（4人） */}
-      <PlayerStatus
-        players={gameState.players}
-        turn={gameState.turn}
-        roundOver={gameState.roundOver}
-      />
-
-      {/* メインゲーム画面 */}
-      <main className="flex-1 p-2 flex flex-col gap-1.5 overflow-hidden w-full min-h-0">
-        {/* ガイドメッセージ ＆ 山札・捨て札（ポン・チーチャンス時は枠全体と対象牌がハイライト） */}
-        <GuideAndDeck
-          guideMessage={getGuideMessage()}
-          lastActionText={lastActionText}
-          isPlayerTurn={isPlayerTurn}
-          isDrawPhase={isDrawPhase}
-          isMyInterrupt={isMyInterrupt}
-          roundOver={gameState.roundOver}
-          deckCount={gameState.deck.length}
-          lastDiscardItem={lastDiscardItem}
-          onDraw={doDraw}
-          onOpenDiscardModal={() => setShowDiscardModal(true)}
-        />
-
-        {/* 場（フィールド：和音・音階セット一覧） */}
-        <Field
-          field={gameState.field}
-          players={gameState.players}
-          selectedMeldId={selectedMeld}
-          lastAddedCardId={lastAddedCardId}
-          lastSwappedMeldId={lastSwappedMeldId}
-          swappedInCardId={swappedInCardId}
-          ejectedCardInfo={ejectedCardInfo}
-          actionableMeldIds={actionableMeldIds}
-          isPlayerTurn={isPlayerTurn}
-          isMainPhase={isMainPhase}
-          onSelectMeld={(meldId) => {
-            setSelectedMeld(prev => {
-              const next = prev === meldId ? null : meldId;
-              if (next !== null && selectedHand.length > 1) {
-                setSelectedHand([]);
-              }
-              return next;
-            });
+      
+      {/* 1. タイトル ＆ モード選択画面 */}
+      {screenMode === 'title' && (
+        <TitleScreen
+          onSelectBattle={() => setScreenMode('battle')}
+          onSelectTutorial={() => {
+            setInitialPuzzleChapter('tutorial');
+            setScreenMode('puzzle-select');
           }}
+          onSelectPuzzle={() => {
+            setInitialPuzzleChapter('ch1');
+            setScreenMode('puzzle-select');
+          }}
+          onOpenRules={() => setShowRuleModal(true)}
+          onOpenStats={openStatsModal}
+          onOpenOptions={() => setShowOptionModal(true)}
         />
-      </main>
+      )}
 
-      {/* インジケーター表示専用コンテナ（横1行・情報ナビ専用） */}
-      <div className="px-2 pb-1 shrink-0">
-        <IndicatorBar
-          selectedCount={selectedHand.length}
-          selectedCards={playerHandCards.filter(c => selectedHand.includes(c.id))}
-          formedMeldName={formedMeldName}
-          actionBadges={actionBadges}
-          isPlayerTurn={isPlayerTurn}
-          isMainPhase={isMainPhase}
-          isInterruptTurn={isInterruptTurn}
-          isMyInterrupt={isMyInterrupt}
-          selectedMeldId={selectedMeld}
-          hasSwappedThisTurn={gameState.hasSwappedThisTurn}
+      {/* 2. パズル（詰めメロディ）ステージ選択画面 */}
+      {screenMode === 'puzzle-select' && (
+        <PuzzleSelect
+          initialChapterId={initialPuzzleChapter}
+          onSelectStage={(stage) => {
+            setSelectedPuzzleStage(stage);
+            setScreenMode('puzzle-play');
+          }}
+          onBackToTitle={() => setScreenMode('title')}
         />
-      </div>
+      )}
 
-      {/* アクション操作専用コンテナ（横1行・ボタン専用） */}
-      <div className="px-2 pb-1 shrink-0">
-        <ActionBar
-          selectedCount={selectedHand.length}
-          isPlayerTurn={isPlayerTurn}
-          isMainPhase={isMainPhase}
-          isInterruptTurn={isInterruptTurn}
-          isMyInterrupt={isMyInterrupt}
-          canPon={canPon}
-          canChii={canChii}
-          isValidScaleSelection={isValidScaleSelection}
-          isValidChordSelection={isValidChordSelection}
-          isValidAddSelection={isValidAddSelection}
-          isValidSwapSelection={isValidSwapSelection}
-          onMeld={handlePlayerMeld}
-          onAdd={handlePlayerAdd}
-          onSwap={handlePlayerSwap}
-          onDiscard={doDiscard}
-          onPassInterrupt={doPassInterrupt}
-          onInterruptAction={handlePlayerInterrupt}
-          firstSelectedCardId={selectedHand.length === 1 ? selectedHand[0] : undefined}
+      {/* 3. パズル（詰めメロディ）ゲームプレイ画面 */}
+      {screenMode === 'puzzle-play' && selectedPuzzleStage && (
+        <PuzzlePlay
+          stage={selectedPuzzleStage}
+          onBackToSelect={() => setScreenMode('puzzle-select')}
+          onSelectStage={(stage) => setSelectedPuzzleStage(stage)}
+          soundEnabled={soundEnabled}
+          assistEnabled={assistEnabled}
+          onOpenOptions={() => setShowOptionModal(true)}
         />
-      </div>
+      )}
 
-      {/* プレイヤー手札コンテナ（純粋な手札カードトレイ） */}
-      <div className="px-2 pb-2 shrink-0">
-        <Hand
-          hand={playerHandCards}
-          selectedHand={selectedHand}
-          justDrawnCardId={gameState.players[0].justDrawnCardId}
-          lastSwappedInCardId={lastSwappedInCardId}
-          highlightCardIds={highlightCardIds}
-          reactionAddCardIds={reactionAddCardIds}
-          reactionSwapCardIds={reactionSwapCardIds}
-          readyToMeldCardIds={readyToMeldCardIds}
-          twoCardPairCardIds={twoCardPairCardIds}
-          isInterruptTurn={isInterruptTurn}
-          isMyInterrupt={isMyInterrupt}
-          onCardClick={handleCardClick}
-        />
-      </div>
+      {/* 4. 通常対戦モード画面 */}
+      {screenMode === 'battle' && (
+        <>
+          {/* ヘッダー（タイトルへ戻るボタン付き） */}
+          <Header
+            round={gameState.round}
+            onOpenRules={() => setShowRuleModal(true)}
+            onOpenOptions={() => setShowOptionModal(true)}
+            onOpenLogs={() => setShowLogModal(true)}
+            onBackToTitle={() => setScreenMode('title')}
+          />
+
+          {/* プレイヤー情報（4人） */}
+          <PlayerStatus
+            players={gameState.players}
+            turn={gameState.turn}
+            roundOver={gameState.roundOver}
+          />
+
+          {/* メインゲーム画面 */}
+          <main className="flex-1 p-2 flex flex-col gap-1.5 overflow-hidden w-full min-h-0">
+            {/* ガイドメッセージ ＆ 山札・捨て札 */}
+            <GuideAndDeck
+              guideMessage={getGuideMessage()}
+              lastActionText={lastActionText}
+              isPlayerTurn={isPlayerTurn}
+              isDrawPhase={isDrawPhase}
+              isMyInterrupt={isMyInterrupt}
+              roundOver={gameState.roundOver}
+              deckCount={gameState.deck.length}
+              lastDiscardItem={lastDiscardItem}
+              onDraw={doDraw}
+              onOpenDiscardModal={() => setShowDiscardModal(true)}
+            />
+
+            {/* 場（フィールド：和音・音階セット一覧） */}
+            <Field
+              field={gameState.field}
+              players={gameState.players}
+              selectedMeldId={selectedMeld}
+              lastAddedCardId={lastAddedCardId}
+              lastSwappedMeldId={lastSwappedMeldId}
+              swappedInCardId={swappedInCardId}
+              ejectedCardInfo={ejectedCardInfo}
+              actionableMeldIds={actionableMeldIds}
+              isPlayerTurn={isPlayerTurn}
+              isMainPhase={isMainPhase}
+              onSelectMeld={(meldId) => {
+                setSelectedMeld(prev => {
+                  const next = prev === meldId ? null : meldId;
+                  if (next !== null && selectedHand.length > 1) {
+                    setSelectedHand([]);
+                  }
+                  return next;
+                });
+              }}
+            />
+          </main>
+
+          {/* インジケーター表示専用コンテナ（横1行・情報ナビ専用） */}
+          <div className="px-2 pb-1 shrink-0">
+            <IndicatorBar
+              selectedCount={selectedHand.length}
+              selectedCards={playerHandCards.filter(c => selectedHand.includes(c.id))}
+              formedMeldName={formedMeldName}
+              actionBadges={actionBadges}
+              isPlayerTurn={isPlayerTurn}
+              isMainPhase={isMainPhase}
+              isInterruptTurn={isInterruptTurn}
+              isMyInterrupt={isMyInterrupt}
+              selectedMeldId={selectedMeld}
+              hasSwappedThisTurn={gameState.hasSwappedThisTurn}
+            />
+          </div>
+
+          {/* アクション操作専用コンテナ（横1行・ボタン専用） */}
+          <div className="px-2 pb-1 shrink-0">
+            <ActionBar
+              selectedCount={selectedHand.length}
+              isPlayerTurn={isPlayerTurn}
+              isMainPhase={isMainPhase}
+              isInterruptTurn={isInterruptTurn}
+              isMyInterrupt={isMyInterrupt}
+              canPon={canPon}
+              canChii={canChii}
+              isValidScaleSelection={isValidScaleSelection}
+              isValidChordSelection={isValidChordSelection}
+              isValidAddSelection={isValidAddSelection}
+              isValidSwapSelection={isValidSwapSelection}
+              onMeld={handlePlayerMeld}
+              onAdd={handlePlayerAdd}
+              onSwap={handlePlayerSwap}
+              onDiscard={doDiscard}
+              onPassInterrupt={doPassInterrupt}
+              onInterruptAction={handlePlayerInterrupt}
+              firstSelectedCardId={selectedHand.length === 1 ? selectedHand[0] : undefined}
+            />
+          </div>
+
+          {/* プレイヤー手札コンテナ（純粋な手札カードトレイ） */}
+          <div className="px-2 pb-2 shrink-0">
+            <Hand
+              hand={playerHandCards}
+              selectedHand={selectedHand}
+              justDrawnCardId={gameState.players[0].justDrawnCardId}
+              lastSwappedInCardId={lastSwappedInCardId}
+              highlightCardIds={highlightCardIds}
+              reactionAddCardIds={reactionAddCardIds}
+              reactionSwapCardIds={reactionSwapCardIds}
+              readyToMeldCardIds={readyToMeldCardIds}
+              twoCardPairCardIds={twoCardPairCardIds}
+              isInterruptTurn={isInterruptTurn}
+              isMyInterrupt={isMyInterrupt}
+              onCardClick={handleCardClick}
+            />
+          </div>
+        </>
+      )}
 
       {/* モーダル群 */}
       <StatsModal

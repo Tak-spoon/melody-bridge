@@ -244,7 +244,7 @@ export const runBatchSimulation = (
     const hasMeldedList: boolean[] = [false, false, false, false];
     const startPlayer = r % PLAYERS; // 本編ゲーム同様、P0 -> P1 -> P2 -> P3 と親が1局ごとに完全交代
 
-    // 親から順番に1枚ずつ配牌
+    // 親から順番に1枚ずつカードを配る（ディール）
     for (let i = 0; i < HAND_SIZE * PLAYERS; i++) {
       const pIdx = (startPlayer + i) % PLAYERS;
       hands[pIdx].push(deck.pop()!);

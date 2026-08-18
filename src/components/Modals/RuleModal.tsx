@@ -48,15 +48,38 @@ const MiniCard: React.FC<MiniCardProps> = ({ note, oct = 3, jp, highlight, compa
 // -------------------------------------------------------------
 const RULES_DATA: RuleSection[] = [
   {
-    title: "1. ゲームの目的とカード構成",
+    title: "1. ゲームの目的 と カード構成",
     content: (
       <div className="space-y-2 text-xs text-amber-100/90 leading-relaxed select-none">
-        <p className="font-bold text-amber-200">
-          手札から音楽の「コード（和音）」や「スケール（音階）」を場に出し、誰よりも早く手札を無くすゲームです。
+        <p className="text-amber-200">
+          トランプの<strong>セブンブリッジ（ラミー）</strong>をベースにした音楽カードゲームです。<br/>
+          手札から<strong>「コード（和音）」</strong>や<strong>「スケール（音階）」</strong>を作って場に出し、誰よりも早く手札を0枚にした人が勝利（アガリ）となります！
         </p>
+
+        {/* 手番の流れ（セブンブリッジサイクル） */}
+        <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/80 shadow-inner flex items-center justify-around text-center text-[10px]">
+          <div className="flex flex-col items-center">
+            <span className="font-bold text-amber-400">① 引く</span>
+            <span className="text-[9px] text-amber-200/70">山札からドロー</span>
+          </div>
+          <span className="text-amber-600 font-bold">➔</span>
+          <div className="flex flex-col items-center">
+            <span className="font-bold text-emerald-400">② 減らす</span>
+            <span className="text-[9px] text-amber-200/70">役出し / 付け札</span>
+          </div>
+          <span className="text-amber-600 font-bold">➔</span>
+          <div className="flex flex-col items-center">
+            <span className="font-bold text-rose-400">③ 捨てる</span>
+            <span className="text-[9px] text-amber-200/70">不要な1枚</span>
+          </div>
+        </div>
         
+        {/* カードの構成 */}
         <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/80 space-y-1.5 shadow-inner">
-          <span className="text-[11px] font-black text-amber-300 block">カードの構成（全56枚）</span>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-black text-amber-300">カードの構成（全56枚）</span>
+            <span className="text-[10px] text-amber-400/90 font-bold">初期手札: 各7枚</span>
+          </div>
           <div className="flex items-center justify-between gap-0.5 bg-[#120a05] p-1.5 rounded-lg border border-amber-950">
             <MiniCard note="C" oct={3} jp="ド" />
             <MiniCard note="D" oct={3} jp="レ" />
@@ -66,9 +89,8 @@ const RULES_DATA: RuleSection[] = [
             <MiniCard note="A" oct={3} jp="ラ" />
             <MiniCard note="B" oct={3} jp="シ" />
           </div>
-          <p className="text-[10px] text-amber-200/80 leading-normal">
-            ピアノの白鍵7音 × 4オクターブ（C2〜B5）× 各音2枚 ＝ <strong>計56枚</strong> を使用。<br/>
-            各プレイヤーに <strong>手札7枚</strong> が配られて対戦が始まります。
+          <p className="text-[9.5px] text-amber-200/80 leading-tight">
+            ピアノの白鍵7音 × 4オクターブ（C2〜B5）× 各音2枚 ＝ <strong>計56枚</strong> を使用。
           </p>
         </div>
       </div>
@@ -529,7 +551,7 @@ const CONTROLS_DATA: RuleSection[] = [
         <div className="bg-[#24150c] p-2 rounded-xl border border-amber-900/80 space-y-1.5 shadow-inner text-[10px]">
           <div className="flex items-center gap-2">
             <div className="w-5 h-7 rounded border border-amber-400 bg-amber-100 text-amber-950 font-bold flex items-center justify-center text-[9px] shadow-xs">光沢</div>
-            <span><strong>完成形カード</strong>：選ぶと即役が揃うカードが麻雀牌風の光沢シマーで光ります</span>
+            <span><strong>完成形カード</strong>：選ぶと即役が揃うカードが美しい光沢シマーで光ります</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-5 h-7 rounded border border-purple-400 bg-purple-100 text-purple-950 font-bold flex items-center justify-center text-[9px] shadow-xs">紫枠</div>
@@ -615,8 +637,8 @@ export const RuleModal: React.FC<RuleModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center z-[80] p-4">
-      <div className="bg-[#180f09] rounded-2xl p-4 max-w-sm w-full h-[475px] max-h-[90vh] shadow-[0_10px_35px_rgba(0,0,0,0.8)] flex flex-col border-2 border-amber-500/60 animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center z-[80] p-3 sm:p-4 animate-in fade-in">
+      <div className="bg-[#180f09] rounded-2xl p-3.5 sm:p-4 max-w-md w-full h-[470px] shadow-[0_10px_35px_rgba(0,0,0,0.8)] flex flex-col border-2 border-amber-500/60 animate-in zoom-in-95 duration-200 select-none">
         
         {/* 固定ヘッダー */}
         <div className="flex justify-between items-center mb-2 border-b border-[#382315] pb-1.5 shrink-0">
@@ -661,7 +683,7 @@ export const RuleModal: React.FC<RuleModalProps> = ({ isOpen, onClose }) => {
 
         {/* 視覚的スワイプ・プログレスバー */}
         <div 
-          className="grid gap-1 mb-2.5 shrink-0 px-0.5" 
+          className="grid gap-1 mb-2 shrink-0 px-0.5" 
           style={{ gridTemplateColumns: `repeat(${currentData.length}, minmax(0, 1fr))` }}
         >
           {currentData.map((_, idx) => (
@@ -680,8 +702,8 @@ export const RuleModal: React.FC<RuleModalProps> = ({ isOpen, onClose }) => {
           ))}
         </div>
         
-        {/* スワイプ可能コンテンツ領域 */}
-        <div className="relative flex-1 min-h-0 flex items-stretch">
+        {/* スワイプ可能コンテンツ領域（完全均一化・内部スクロールゼロ） */}
+        <div className="relative flex-1 min-h-0 flex items-stretch overflow-hidden">
           {page > 0 && (
             <button
               onClick={() => setPage(p => p - 1)}
@@ -706,15 +728,15 @@ export const RuleModal: React.FC<RuleModalProps> = ({ isOpen, onClose }) => {
             onMouseLeave={(e) => {
               if (isMouseDown) handleSwipeEnd(e.clientX);
             }}
-            className="w-full flex-1 overflow-y-auto px-1 min-h-0 cursor-grab active:cursor-grabbing touch-pan-y"
+            className="w-full flex-1 overflow-hidden px-1 min-h-0 cursor-grab active:cursor-grabbing flex flex-col"
           >
-            <div className="mb-2">
+            <div className="mb-1.5 shrink-0">
               <h4 className="font-black text-amber-300 text-xs border-l-4 border-amber-500 pl-2">
                 {currentData[page].title}
               </h4>
             </div>
             
-            <div key={`${activeTab}-${page}`} className="animate-in fade-in duration-200">
+            <div key={`${activeTab}-${page}`} className="flex-1 flex flex-col justify-start animate-in fade-in duration-150 overflow-hidden">
               {currentData[page].content}
             </div>
           </div>

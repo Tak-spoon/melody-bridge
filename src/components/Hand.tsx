@@ -31,7 +31,7 @@ export const Hand: React.FC<HandProps> = ({
   isMyInterrupt,
   onCardClick
 }) => {
-  // ツモ牌がある場合は右端に独立させる手札リスト
+  // ドローしたカードがある場合は右端に独立させる手札リスト
   const regularCards = justDrawnCardId 
     ? hand.filter(c => c.id !== justDrawnCardId)
     : hand;

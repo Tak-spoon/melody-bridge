@@ -132,7 +132,7 @@ export const GuideAndDeck: React.FC<GuideAndDeckProps> = ({
             )}
           </div>
           <span className={`text-[9px] mt-1 ${isMyInterrupt ? 'font-black text-amber-300 animate-pulse' : 'font-black text-amber-200/90'}`}>
-            {isMyInterrupt ? '対象牌' : '捨て札'}
+            {isMyInterrupt ? '対象カード' : '捨て札'}
           </span>
         </div>
       </div>

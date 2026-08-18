@@ -37,7 +37,7 @@ export const DiscardModal: React.FC<DiscardModalProps> = ({
         <div className="flex-1 overflow-y-auto grid grid-cols-4 sm:grid-cols-5 gap-2 p-1">
           {discardPile.map((item, idx) => {
             const isSystem = item.discarderId === 'system';
-            const ownerName = isSystem ? '初期(王牌)' : (players[item.discarderId as number]?.name || '誰か');
+            const ownerName = isSystem ? '場（初期）' : (players[item.discarderId as number]?.name || '誰か');
             const isUser = item.discarderId === 0;
 
             return (
