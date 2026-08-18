@@ -476,6 +476,7 @@ export const PuzzlePlay: React.FC<PuzzlePlayProps> = ({
   // 演出・ポップアップステート（チュートリアルのみ開始時にお題モーダルを表示）
   const isTutorial = stage.id.startsWith('tut_');
   const [isCleared, setIsCleared] = useState(false);
+  const [isFailed, setIsFailed] = useState(false);
   const [winEffectName, setWinEffectName] = useState<string | null>(null);
   const [cutInInfo, setCutInInfo] = useState<{ type: 'pon' | 'chii'; playerName: string } | null>(null);
   const [showIntroModal, setShowIntroModal] = useState(isTutorial);
@@ -516,6 +517,7 @@ export const PuzzlePlay: React.FC<PuzzlePlayProps> = ({
     setSelectedMeld(null);
     setLastAddedCardId(null);
     setIsCleared(false);
+    setIsFailed(false);
     setWinEffectName(null);
     setCutInInfo(null);
     setShowIntroModal(false);
@@ -796,18 +798,33 @@ export const PuzzlePlay: React.FC<PuzzlePlayProps> = ({
   // 捨て札アクション
   const handleDiscard = (cardId: string) => {
     const card = hand.find(c => c.id === cardId);
-    if (card) {
-      const noteName = NOTE_NAMES[card.absVal % 7];
-      const oct = Math.floor(card.absVal / 7) + 2;
-      setLastActionText(`[${noteName}${oct}] を捨てました`);
-      const discardItem: DiscardItem = { card, discarderId: 0, isHidden: false };
-      setLastDiscardItem(discardItem);
-      setDiscardPile(prev => [...prev, discardItem]);
+    if (!card) return;
+
+    if (soundEnabled) {
+      playCardTone(card.absVal);
     }
 
-    setHand(prev => prev.filter(c => c.id !== cardId));
+    const remainingHand = hand.filter(c => c.id !== cardId);
+    const noteName = NOTE_NAMES[card.absVal % 7];
+    const oct = Math.floor(card.absVal / 7) + 2;
+
+    const discardItem: DiscardItem = { card, discarderId: 0, isHidden: false };
+    setLastDiscardItem(discardItem);
+    setDiscardPile(prev => [...prev, discardItem]);
+    setHand(remainingHand);
     setSelectedHand([]);
     setSelectedMeld(null);
+
+    if (remainingHand.length === 0) {
+      // 成功：手札0枚アガリ！
+      setLastActionText(`[${noteName}${oct}] を捨てて手札0枚アガリ！`);
+    } else {
+      // 失敗：手札がまだ残っている状態で捨ててしまった！
+      setLastActionText(`[${noteName}${oct}] を捨てましたが、手札が残っています（手詰まり）`);
+      setTimeout(() => {
+        setIsFailed(true);
+      }, 400);
+    }
   };
 
   // 割り込み（ポン・チー）判定
@@ -1416,6 +1433,50 @@ export const PuzzlePlay: React.FC<PuzzlePlayProps> = ({
               )}
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* ❌ 失敗モーダル（シンプル・ミニマル） */}
+      {isFailed && !isCleared && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center z-[100] p-4 animate-in fade-in">
+          <div className="bg-[#1c1009] rounded-2xl p-4 sm:p-5 max-w-xs w-full border-2 border-rose-600/70 shadow-[0_10px_35px_rgba(0,0,0,0.9)] flex flex-col items-center text-center animate-in zoom-in-95 duration-200">
+            <div className="w-10 h-10 rounded-full bg-rose-950/80 border border-rose-500/60 flex items-center justify-center text-rose-400 mb-2 shadow-md">
+              <RotateCcw className="w-4 h-4" />
+            </div>
+
+            <h3 className="text-base font-black text-rose-200 mb-3">
+              残念・・・
+            </h3>
+
+            <div className="w-full space-y-2">
+              <button
+                onClick={resetStage}
+                className="w-full py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-md border border-amber-300 transition active:scale-95 flex items-center justify-center gap-1.5"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>もう一度やり直す</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsFailed(false);
+                  setUnlockedStepCount(1);
+                  setShowHintModal(true);
+                }}
+                className="w-full py-2 bg-[#2a170d] hover:bg-[#381f12] text-amber-300 font-bold text-xs rounded-xl border border-amber-600/50 transition active:scale-95 flex items-center justify-center gap-1.5"
+              >
+                <Lightbulb className="w-4 h-4 text-amber-400" />
+                <span>ヒントを見る</span>
+              </button>
+
+              <button
+                onClick={onBackToSelect}
+                className="w-full py-1 text-amber-400/70 hover:text-amber-200 text-xs font-bold transition"
+              >
+                ステージ一覧に戻る
+              </button>
+            </div>
           </div>
         </div>
       )}
