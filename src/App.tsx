@@ -1058,8 +1058,8 @@ export default function App() {
           return; // 付け札をした後は次のレンダリングで追加の付け札や捨て札を判定
         }
 
-        // 3. 役出しも付け札もできなかった場合、スワップ（入れ替え）を試みる（1手番最大1回）
-        if (p.hasMelded && !gameState.hasSwappedThisTurn) {
+        // 3. 役出しも付け札もできなかった場合、スワップ（入れ替え）を試みる（役出し前でも可・手札2枚以下時は不可・1手番最大1回）
+        if (!gameState.hasSwappedThisTurn && currentHand.length > 2 && gameState.deck.length > 0) {
           let swapped = false;
           for (const card of currentHand) {
             for (const meld of gameState.field) {

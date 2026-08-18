@@ -54,25 +54,23 @@ export const Field: React.FC<FieldProps> = ({
             const isSelected = selectedMeldId === meld.id;
             const isSwapped = lastSwappedMeldId === meld.id;
             const isEjecting = ejectedCardInfo?.meldId === meld.id;
-            const isActionable = !isSelected && !isCompleted && actionableMeldIds?.has(meld.id);
+            const isActionable = !isSelected && actionableMeldIds?.has(meld.id);
             const ownerName = players[meld.ownerId]?.name || '誰か';
 
             return (
               <div 
                 key={meld.id} 
-                onClick={() => !isCompleted && canSelectMeld && onSelectMeld(meld.id)}
+                onClick={() => canSelectMeld && onSelectMeld(meld.id)}
                 className={`relative p-1.5 rounded-xl border transition-all overflow-visible ${
                   isSwapped
                     ? 'bg-[#082417]/95 border-orange-400 ring-4 ring-orange-400 shadow-[0_0_24px_rgba(249,115,22,0.95)] scale-[1.04] z-30'
-                    : isCompleted 
-                      ? 'bg-[#082014]/90 border-emerald-800/80 opacity-85 cursor-default' 
-                      : isSelected 
-                        ? 'border-amber-400 ring-2 ring-amber-400 bg-[#164d33] shadow-lg cursor-pointer scale-[1.02]' 
-                        : isActionable
-                          ? 'animate-pulse-slow border-emerald-400/90 bg-[#103d27] cursor-pointer shadow-[0_0_12px_rgba(16,185,129,0.5)] hover:border-amber-400'
-                          : canSelectMeld
-                            ? 'bg-[#082417]/95 border-emerald-600/70 hover:border-amber-400/80 cursor-pointer shadow-md'
-                            : 'bg-[#082417]/90 border-emerald-700/60 cursor-default shadow-xs'
+                    : isSelected 
+                      ? 'border-amber-400 ring-2 ring-amber-400 bg-[#164d33] shadow-lg cursor-pointer scale-[1.02]' 
+                      : isActionable
+                        ? 'animate-pulse-slow border-emerald-400/90 bg-[#103d27] cursor-pointer shadow-[0_0_12px_rgba(16,185,129,0.5)] hover:border-amber-400'
+                        : canSelectMeld
+                          ? 'bg-[#082417]/95 border-emerald-600/70 hover:border-amber-400/80 cursor-pointer shadow-md'
+                          : 'bg-[#082417]/90 border-emerald-700/60 cursor-default shadow-xs'
                 }`}
               >
                 {/* 押し出された古いカードのイジェクト（上へ跳ね上がる）アニメーション */}

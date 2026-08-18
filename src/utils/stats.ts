@@ -339,8 +339,8 @@ export const runBatchSimulation = (
         break;
       }
 
-      // スワップ（役出し済みの場合、手札のカードと場の和音を入れ替え）
-      if (hasMeldedList[turn]) {
+      // スワップ（本編同様：役出し前でも使用可能、手札2枚以下のリーチ時は不可、1手番1回）
+      if (hand.length > 2 && deck.length > 0) {
         for (let ci = 0; ci < hand.length; ci++) {
           let swapped = false;
           for (const meld of field) {

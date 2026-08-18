@@ -140,9 +140,12 @@ const RULES_DATA: RuleSection[] = [
 
         {/* 入れ替え */}
         <div className="bg-[#24150c] p-2 rounded-xl border border-orange-500/40 space-y-1 shadow-inner">
-          <span className="font-black text-orange-300 text-xs flex items-center gap-1">
-            <RefreshCw className="w-3.5 h-3.5" /> 入れ替え（1手番1回まで）
-          </span>
+          <div className="flex items-center justify-between">
+            <span className="font-black text-orange-300 text-xs flex items-center gap-1">
+              <RefreshCw className="w-3.5 h-3.5" /> 入れ替え（3〜4和音対応・1手番1回）
+            </span>
+          </div>
+          <p className="text-[10px] text-orange-200/80">場の和音（3〜4音）の1枚を手札と交換し、別の和音へアレンジ（抜いたカードは手札回収）！</p>
           <div className="flex items-center gap-1 bg-[#120a05] p-1.5 rounded-lg border border-amber-950 text-[10px]">
             <div className="flex items-center gap-0.5">
               <MiniCard note="C" oct={3} jp="ド" />
