@@ -27,15 +27,15 @@ export const IndicatorBar: React.FC<IndicatorBarProps> = ({
   actionBadges = []
 }) => {
   return (
-    <div className="bg-[#1b1008] border-2 border-[#452715] rounded-xl px-3 py-1.5 shadow-md flex items-center justify-between min-h-[34px] gap-2">
+    <div className="bg-[#1b1008] border-2 border-[#452715] rounded-xl px-3 h-9 sm:h-[38px] shrink-0 shadow-md flex items-center justify-between gap-2 overflow-hidden">
       {/* 左側：手札選択情報 & 選択中のカード一覧（ミニバッジ表示） */}
-      <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+      <div className="flex items-center gap-2 min-w-0 flex-1 h-full overflow-hidden">
         <span className="text-[11px] font-black text-amber-100 shrink-0">
           手札 <span className="text-amber-300/70 font-normal">({selectedCount}枚)</span>:
         </span>
 
         {selectedCards.length > 0 ? (
-          <div className="flex items-center gap-1 overflow-x-auto py-0.5">
+          <div className="flex items-center gap-1 overflow-x-auto py-0.5 h-full">
             {selectedCards.map((c) => {
               const oct = Math.floor(c.absVal / 7) + 2;
               const noteIndex = c.absVal % 7;
@@ -55,7 +55,7 @@ export const IndicatorBar: React.FC<IndicatorBarProps> = ({
             })}
           </div>
         ) : (
-          <span className="text-[10px] text-amber-200/40">未選択</span>
+          <span className="text-[10.5px] text-amber-200/40 font-medium">未選択</span>
         )}
       </div>
 
@@ -65,13 +65,13 @@ export const IndicatorBar: React.FC<IndicatorBarProps> = ({
           {actionBadges.map((badge, idx) => (
             <span
               key={idx}
-              className={`px-2 py-0.5 rounded-md text-[10.5px] font-black tracking-wide shadow-xs whitespace-nowrap inline-flex items-center ${
+              className={`px-2.5 py-0.5 rounded-md text-[11px] font-black tracking-wide shadow-md whitespace-nowrap inline-flex items-center ${
                 badge.type === 'swap'
-                  ? 'bg-orange-950/90 border border-orange-400 text-orange-200 shadow-[0_0_8px_rgba(249,115,22,0.4)]'
+                  ? 'bg-gradient-to-r from-orange-600 to-amber-600 border border-orange-300 text-white shadow-[0_0_12px_rgba(249,115,22,0.75)] ring-1 ring-orange-200/70'
                   : badge.type === 'scale'
                     ? 'bg-sky-950/90 border border-sky-400 text-sky-200 shadow-[0_0_8px_rgba(56,189,248,0.35)]'
                     : badge.type === 'add'
-                      ? 'bg-emerald-950/90 border border-emerald-400 text-emerald-200 shadow-[0_0_8px_rgba(16,185,129,0.35)]'
+                      ? 'bg-gradient-to-r from-emerald-700 to-teal-700 border border-emerald-300 text-white shadow-[0_0_8px_rgba(16,185,129,0.5)]'
                       : 'bg-[#2a1a0f] border border-amber-400/80 text-amber-200 shadow-[0_0_6px_rgba(251,191,36,0.25)]'
               }`}
             >
@@ -81,11 +81,11 @@ export const IndicatorBar: React.FC<IndicatorBarProps> = ({
         </div>
       ) : formedMeldName ? (
         <div className="shrink-0">
-          <span className={`px-2 py-0.5 rounded-md text-[10.5px] font-black tracking-wide shadow-xs whitespace-nowrap inline-flex items-center ${
+          <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black tracking-wide shadow-md whitespace-nowrap inline-flex items-center ${
             formedMeldName.startsWith('🔄')
-              ? 'bg-orange-950/90 border border-orange-400 text-orange-200 shadow-[0_0_8px_rgba(249,115,22,0.4)]'
+              ? 'bg-gradient-to-r from-orange-600 to-amber-600 border border-orange-300 text-white shadow-[0_0_12px_rgba(249,115,22,0.75)] ring-1 ring-orange-200/70'
               : formedMeldName.startsWith('付け札')
-                ? 'bg-emerald-950/90 border border-emerald-400 text-emerald-200 shadow-[0_0_8px_rgba(16,185,129,0.35)]'
+                ? 'bg-gradient-to-r from-emerald-700 to-teal-700 border border-emerald-300 text-white shadow-[0_0_8px_rgba(16,185,129,0.5)]'
                 : 'bg-[#2a1a0f] border border-amber-400/80 text-amber-200'
           }`}>
             {formedMeldName}

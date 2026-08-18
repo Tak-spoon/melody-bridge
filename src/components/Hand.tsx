@@ -73,7 +73,11 @@ export const Hand: React.FC<HandProps> = ({
           return (
             <div 
               key={card.id} 
-              className={`shrink-0 ${isJustDrawn ? "ml-2 sm:ml-3.5" : "mx-[1.5px] sm:mx-0.5"} ${
+              className={`shrink-0 ${
+                isJustDrawn 
+                  ? "ml-2 sm:ml-3.5 animate-draw-fly-in z-25" 
+                  : "mx-[1.5px] sm:mx-0.5"
+              } ${
                 isSwappedIn 
                   ? "animate-bounce z-20" 
                   : isBothReaction || isSwapReaction || isAddReaction

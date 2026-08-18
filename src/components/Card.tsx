@@ -65,17 +65,24 @@ export const Card: React.FC<CardProps> = ({
           : (isBothReaction || isSwapReaction || isAddReaction)
             ? 'border-amber-700/50 text-amber-900 bg-gradient-to-b from-[#faf7ee] via-white to-[#f5f0e0] shadow-[0_2px_4px_rgba(0,0,0,0.1)] cursor-pointer z-15'
           : isReadyToMeld
-            ? 'border-amber-300 text-amber-950 bg-gradient-to-b from-[#ffffff] via-[#fffbeb] to-[#fef08a] shadow-xs cursor-pointer ring-1.5 ring-amber-300 z-15'
+            ? 'border-amber-300 text-amber-950 bg-gradient-to-b from-[#ffffff] via-[#fffdf0] to-[#fef3c7] shadow-[0_0_12px_rgba(245,158,11,0.7),inset_0_0_6px_rgba(251,191,36,0.35)] cursor-pointer ring-1.5 ring-amber-400 z-15 overflow-hidden'
           : isTwoCardPair
-            ? 'border-purple-400 text-purple-950 bg-gradient-to-b from-[#faf5ff] via-white to-[#f3e8ff] shadow-xs cursor-pointer ring-1 ring-purple-400/70 z-10'
+            ? 'border-purple-300 text-purple-950 bg-gradient-to-b from-[#ffffff] via-[#faf5ff] to-[#f3e8ff] shadow-[0_0_6px_rgba(192,132,252,0.5)] cursor-pointer ring-1 ring-purple-400/80 z-10'
           : isDimmed
             ? 'border-amber-900/30 text-amber-900/70 bg-gradient-to-b from-[#faf7ee] via-white to-[#f5f0e0] opacity-65 brightness-90 shadow-none cursor-pointer'
             : 'border-amber-700/50 text-amber-900 bg-gradient-to-b from-[#faf7ee] via-white to-[#f5f0e0] shadow-[0_2px_4px_rgba(0,0,0,0.1)] cursor-pointer'
         }
         ${extraClass}`}
     >
+      {/* 🌟 完成形カード（3枚役即完成）の斜め光彩シマーエフェクト（キラリと光が走る！） */}
+      {isReadyToMeld && !isSelected && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
+          <div className="w-8 h-[200%] bg-gradient-to-r from-transparent via-white/85 to-transparent -top-1/2 absolute animate-gold-shimmer shadow-[0_0_8px_rgba(255,255,255,0.9)]" />
+        </div>
+      )}
+
       {/* 🟢 🟧 シークエンス選択時の判別カラー丸バッジ（○） */}
-      {!isSelected && (
+      {!isSelected && !isReadyToMeld && (
         <>
           {/* ✨ 付け札＆アレンジ両方可能：緑（付け札）とオレンジ（アレンジ）の丸が横並び！ */}
           {isBothReaction && (

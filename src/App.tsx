@@ -17,6 +17,7 @@ import { Hand } from './components/Hand';
 import { Card as CardComponent } from './components/Card';
 import { CutIn } from './components/CutIn';
 import { WinEffect } from './components/WinEffect';
+import { FlyingDrawCard } from './components/FlyingDrawCard';
 import { RuleModal } from './components/Modals/RuleModal';
 import { OptionModal, BotSpeed, BotCountOption } from './components/Modals/OptionModal';
 import { DiscardModal } from './components/Modals/DiscardModal';
@@ -34,7 +35,24 @@ export default function App() {
   const [showOptionModal, setShowOptionModal] = useState(false);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
-  const [showStatsModal, setShowStatsModal] = useState(false);
+  
+  // 統計モーダル表示状態（localStorageで永続化し、ページリロード時も開いた状態を維持）
+  const [showStatsModal, setShowStatsModal] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('mb_show_stats_modal');
+      return saved !== null ? JSON.parse(saved) : false;
+    } catch { return false; }
+  });
+
+  const openStatsModal = () => {
+    setShowStatsModal(true);
+    try { localStorage.setItem('mb_show_stats_modal', JSON.stringify(true)); } catch {}
+  };
+
+  const closeStatsModal = () => {
+    setShowStatsModal(false);
+    try { localStorage.setItem('mb_show_stats_modal', JSON.stringify(false)); } catch {}
+  };
 
   // 統計データ管理（localStorage永続化）
   const [stats, setStats] = useState<GameStats>(() => loadStats());
@@ -130,6 +148,9 @@ export default function App() {
 
   // ラウンド終了結果モーダル表示状態
   const [showGameOverModal, setShowGameOverModal] = useState(false);
+
+  // 山札フライングドローアニメーション表示状態
+  const [flyingDrawCard, setFlyingDrawCard] = useState<CardType | null>(null);
 
   // 付け札されたカードID（スライドイン差し込み演出用）
   const [lastAddedCardId, setLastAddedCardId] = useState<string | null>(null);
@@ -236,7 +257,8 @@ export default function App() {
       const p = { ...currentP, hand: sortHand([...currentP.hand]) };
       
       if (s.deck.length === 0) {
-        triggerWinSequence(null, '山札がなくなりました（流局）');
+        s.winner = null;
+        finishRound(s, '山札がなくなりました（流局）');
         s.actionCount += 1;
         return s;
       }
@@ -244,6 +266,14 @@ export default function App() {
       s.deck = [...s.deck];
       const drawnCard = s.deck.pop()!;
       
+      // プレイヤー（あなた）のドロー時にフライングドローアニメーションを起動！
+      if (s.turn === 0) {
+        setFlyingDrawCard(drawnCard);
+        setTimeout(() => {
+          setFlyingDrawCard(null);
+        }, 300);
+      }
+
       p.justDrawnCardId = drawnCard.id;
       p.hand = [...sortHand(p.hand), drawnCard];
       p.actions = { ...p.actions, turns: (p.actions?.turns || 0) + 1 };
@@ -404,12 +434,17 @@ export default function App() {
       setSwappedInCardId(handCardId);
       setEjectedCardInfo({ card: swapResult.replacedCard, meldId });
 
+      // 1. 枠内演出（カードの光・押し出し・バッジ）はカードが抜けるタイミング（550ms）で完全同期解除
+      setTimeout(() => {
+        setSwappedInCardId(null);
+        setEjectedCardInfo(null);
+      }, 550);
+
+      // 2. 外枠のオレンジ点灯は余韻を残して800msで最後に消灯
       setTimeout(() => {
         setLastSwappedMeldId(null);
         setLastSwappedInCardId(null);
-        setSwappedInCardId(null);
-        setEjectedCardInfo(null);
-      }, 1200);
+      }, 800);
 
       const outNote = `${NOTE_NAMES[outCard.absVal % 7]}${Math.floor(outCard.absVal / 7) + 2}`;
       const inNote = `${NOTE_NAMES[swapResult.replacedCard.absVal % 7]}${Math.floor(swapResult.replacedCard.absVal / 7) + 2}`;
@@ -1264,7 +1299,7 @@ export default function App() {
         isOpen={showStatsModal}
         stats={stats}
         gameState={gameState}
-        onClose={() => setShowStatsModal(false)}
+        onClose={closeStatsModal}
         onUpdateStats={setStats}
       />
 
@@ -1288,7 +1323,7 @@ export default function App() {
         onToggleBot={toggleBotMode}
         onChangeBotSpeed={cycleBotSpeed}
         onChangeBotTargetCount={changeBotTargetCount}
-        onOpenStats={() => setShowStatsModal(true)}
+        onOpenStats={openStatsModal}
         onClose={() => setShowOptionModal(false)}
       />
 

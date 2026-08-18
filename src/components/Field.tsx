@@ -36,7 +36,7 @@ export const Field: React.FC<FieldProps> = ({
   const canSelectMeld = isPlayerTurn && isMainPhase;
 
   return (
-    <div className="flex-1 bg-[#0e3b26] rounded-xl border-2 border-[#185c3d] p-2 overflow-y-auto flex flex-col gap-2 shadow-[inset_0_4px_24px_rgba(0,0,0,0.55)]">
+    <div className="flex-1 bg-[#0e3b26] rounded-xl border-2 border-[#185c3d] p-2 pt-3.5 overflow-y-auto flex flex-col gap-2 shadow-[inset_0_4px_24px_rgba(0,0,0,0.55)]">
       {field.length === 0 && (
         <div className="flex-1 flex flex-col items-center justify-center text-emerald-300/60 py-8">
           <p className="text-xs font-bold text-emerald-200/70">場に公開されたセットはありません</p>
@@ -46,7 +46,7 @@ export const Field: React.FC<FieldProps> = ({
 
       {/* 和音（コード）エリア */}
       {chordMelds.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 pt-1">
           {chordMelds.map((meld) => {
             const chordSymbol = getChordSymbol(meld.cards);
             const isCompleted = meld.cards.length === 4;
@@ -63,7 +63,7 @@ export const Field: React.FC<FieldProps> = ({
                 onClick={() => !isCompleted && canSelectMeld && onSelectMeld(meld.id)}
                 className={`relative p-1.5 rounded-xl border transition-all overflow-visible ${
                   isSwapped
-                    ? 'border-cyan-400 ring-4 ring-cyan-400 bg-cyan-950/80 shadow-[0_0_24px_rgba(6,182,212,0.9)] scale-[1.04] z-30 animate-pulse'
+                    ? 'bg-[#082417]/95 border-orange-400 ring-4 ring-orange-400 shadow-[0_0_24px_rgba(249,115,22,0.95)] scale-[1.04] z-30'
                     : isCompleted 
                       ? 'bg-[#082014]/90 border-emerald-800/80 opacity-85 cursor-default' 
                       : isSelected 
@@ -79,7 +79,7 @@ export const Field: React.FC<FieldProps> = ({
                 {isEjecting && ejectedCardInfo && (
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 animate-card-eject z-50 pointer-events-none">
                     <div className="relative">
-                      <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-1.5 py-0.2 bg-cyan-500 text-white text-[8px] font-black rounded-full shadow-[0_0_8px_rgba(6,182,212,1)] whitespace-nowrap">
+                      <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-1.5 py-0.2 bg-orange-600 text-white text-[8px] font-black rounded-full shadow-[0_0_8px_rgba(249,115,22,1)] whitespace-nowrap border border-orange-200">
                         💨 押し出し！
                       </span>
                       <CardComponent 
@@ -91,16 +91,18 @@ export const Field: React.FC<FieldProps> = ({
                   </div>
                 )}
 
-                {/* スワップ・リハーモナイズ専用フローティングバッジ */}
+                {/* スワップ・リハーモナイズ専用フローティングバッジ（枠より先に0.8秒でフワッとフェードアウト） */}
                 {isSwapped && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-[9px] font-black rounded-full shadow-[0_0_10px_rgba(6,182,212,0.8)] whitespace-nowrap animate-bounce z-40">
-                    🔄 REHARMONIZE!
+                  <div className="absolute -bottom-3.5 inset-x-0 flex justify-center pointer-events-none z-40">
+                    <div className="px-3 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-black tracking-wider rounded-full shadow-[0_0_16px_rgba(249,115,22,1)] whitespace-nowrap animate-reharmonize-fade border border-orange-200">
+                      🔄 REHARMONIZE!
+                    </div>
                   </div>
                 )}
                 <div className="text-[10px] font-bold mb-1 flex justify-between gap-2 items-center">
                   <span className={`px-1.5 py-0.2 rounded font-black shadow-xs ${
-                    isSwapped
-                      ? 'bg-gradient-to-r from-cyan-400 to-blue-500 text-white ring-1 ring-white/60'
+                    isSwapped && swappedInCardId
+                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white ring-2 ring-white/80 shadow-[0_0_8px_#f97316]'
                       : isCompleted 
                         ? 'bg-slate-700 text-white' 
                         : symbolColorClass
@@ -118,7 +120,7 @@ export const Field: React.FC<FieldProps> = ({
                         key={c.id} 
                         className={`transition-all duration-300 transform ${
                           isSwappedIn
-                            ? 'animate-card-swap-in ring-2 ring-cyan-400 rounded-md sm:rounded-lg shadow-[0_0_16px_rgba(6,182,212,1)] z-30'
+                            ? 'animate-card-swap-in ring-2 ring-orange-400 rounded-md sm:rounded-lg shadow-[0_0_16px_rgba(249,115,22,1)] z-30'
                             : isNewlyAdded 
                               ? 'animate-card-insert ring-2 ring-amber-400 rounded-md sm:rounded-lg shadow-[0_0_12px_rgba(251,191,36,0.85)] z-20' 
                               : 'hover:z-10'
