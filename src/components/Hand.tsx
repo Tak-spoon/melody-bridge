@@ -52,6 +52,7 @@ export const Hand: React.FC<HandProps> = ({
           const isSwappedIn = card.id === lastSwappedInCardId;
           const isSwapReaction = reactionSwapCardIds?.has(card.id) && !selectedHand.includes(card.id);
           const isAddReaction = reactionAddCardIds?.has(card.id) && !selectedHand.includes(card.id);
+          const isBothReaction = isAddReaction && isSwapReaction;
           const isReaction = isAddReaction || isSwapReaction;
           const isReadyToMeld = readyToMeldCardIds?.has(card.id) && !selectedHand.includes(card.id) && !isReaction;
           const isTwoCardPair = twoCardPairCardIds?.has(card.id) && !selectedHand.includes(card.id) && !isReaction && !isReadyToMeld;
@@ -74,22 +75,23 @@ export const Hand: React.FC<HandProps> = ({
               key={card.id} 
               className={`shrink-0 ${isJustDrawn ? "ml-2 sm:ml-3.5" : "mx-[1.5px] sm:mx-0.5"} ${
                 isSwappedIn 
-                  ? "animate-bounce ring-2 ring-cyan-400 rounded-md shadow-md z-20" 
-                  : isSwapReaction
-                    ? "animate-bounce-slow ring-1.5 ring-cyan-400 rounded-md shadow-xs z-20"
-                    : isAddReaction
-                      ? "animate-bounce-slow ring-1.5 ring-emerald-400 rounded-md shadow-xs z-20"
-                      : isReadyToMeld
-                        ? "ring-1.5 ring-amber-300 rounded-md shadow-xs z-15"
-                        : isTwoCardPair
-                          ? "ring-1 ring-purple-400/80 rounded-md shadow-xs z-10"
-                          : ""
+                  ? "animate-bounce z-20" 
+                  : isBothReaction || isSwapReaction || isAddReaction
+                    ? "animate-bounce-slow z-20"
+                    : isReadyToMeld
+                      ? "z-15"
+                      : isTwoCardPair
+                        ? "z-10"
+                        : ""
               }`}
             >
               <CardComponent
                 card={card}
                 isSelected={isSelected}
                 isHighlighted={isHighlighted && !isSelected}
+                isBothReaction={isBothReaction}
+                isAddReaction={isAddReaction && !isBothReaction}
+                isSwapReaction={isSwapReaction && !isBothReaction}
                 isReadyToMeld={isReadyToMeld}
                 isTwoCardPair={isTwoCardPair}
                 isDimmed={isDimmed}

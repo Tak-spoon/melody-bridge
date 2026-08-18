@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, X, Volume2, Music2, Check, Minus, Bot, Zap, BarChart3, Repeat } from 'lucide-react';
+import { Settings, X, Volume2, Music2, Check, Minus, Bot, Zap, BarChart3, Repeat, Sparkles } from 'lucide-react';
 
 export type BotSpeed = 'normal' | 'fast' | 'ultra';
 export type BotCountOption = 1 | 4 | 10 | 50 | 'unlimited';
@@ -8,12 +8,14 @@ interface OptionModalProps {
   isOpen: boolean;
   soundEnabled: boolean;
   cardToneEnabled: boolean;
+  assistEnabled: boolean;
   botMode: boolean;
   botSpeed: BotSpeed;
   botTargetCount: BotCountOption;
   botRemainingCount: number | 'unlimited';
   onToggleSound: () => void;
   onToggleCardTone: () => void;
+  onToggleAssist: () => void;
   onToggleBot: () => void;
   onChangeBotSpeed: () => void;
   onChangeBotTargetCount: (count: BotCountOption) => void;
@@ -25,12 +27,14 @@ export const OptionModal: React.FC<OptionModalProps> = ({
   isOpen,
   soundEnabled,
   cardToneEnabled,
+  assistEnabled,
   botMode,
   botSpeed,
   botTargetCount,
   botRemainingCount,
   onToggleSound,
   onToggleCardTone,
+  onToggleAssist,
   onToggleBot,
   onChangeBotSpeed,
   onChangeBotTargetCount,
@@ -162,6 +166,56 @@ export const OptionModal: React.FC<OptionModalProps> = ({
                   }`} 
                 >
                   {soundEnabled ? (
+                    <Check className="w-3 h-3 stroke-[3]" />
+                  ) : (
+                    <Minus className="w-2.5 h-2.5 stroke-[3]" />
+                  )}
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* セクション: アシスト設定 */}
+          <div className="space-y-1.5 pt-1 border-t border-amber-950/80">
+            <span className="text-[11px] font-black text-amber-400/80 px-1 block">
+              ✨ プレイアシスト設定
+            </span>
+
+            <div className="bg-[#22160d] p-2.5 rounded-xl border border-amber-900/60 shadow-inner flex items-center justify-between gap-2">
+              <div className="flex items-start gap-2 pr-1 min-w-0">
+                <Sparkles className={`w-4 h-4 shrink-0 mt-0.5 ${assistEnabled ? 'text-amber-400' : 'text-slate-500'}`} />
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-black text-amber-100">アシストナビ</span>
+                    <span className={`text-[9px] font-black px-1.5 py-0.2 rounded ${
+                      assistEnabled ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400 border border-slate-700'
+                    }`}>
+                      {assistEnabled ? 'ON' : 'OFF'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-amber-200/60 leading-tight block mt-0.5">
+                    出せるカードの浮遊・相性ナビ発光
+                  </span>
+                </div>
+              </div>
+
+              {/* トグルスイッチ */}
+              <button
+                onClick={onToggleAssist}
+                className={`w-12 h-6 rounded-full transition-all relative shrink-0 p-0.5 border flex items-center shadow-inner ${
+                  assistEnabled 
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-400 border-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.4)]' 
+                    : 'bg-[#110a06] border-amber-950/90'
+                }`}
+              >
+                <div 
+                  className={`w-5 h-5 rounded-full shadow-md transition-all flex items-center justify-center ${
+                    assistEnabled 
+                      ? 'translate-x-6 bg-slate-950 text-amber-400 border border-amber-300' 
+                      : 'translate-x-0 bg-slate-700 text-slate-400 border border-slate-600'
+                  }`} 
+                >
+                  {assistEnabled ? (
                     <Check className="w-3 h-3 stroke-[3]" />
                   ) : (
                     <Minus className="w-2.5 h-2.5 stroke-[3]" />

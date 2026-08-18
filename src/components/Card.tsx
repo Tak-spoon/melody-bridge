@@ -10,6 +10,9 @@ interface CardProps {
   interpretedAbsVal?: number | null;
   sizeClass?: string;
   isHighlighted?: boolean;
+  isAddReaction?: boolean;
+  isSwapReaction?: boolean;
+  isBothReaction?: boolean;
   isReadyToMeld?: boolean;
   isTwoCardPair?: boolean;
   isDimmed?: boolean;
@@ -24,6 +27,9 @@ export const Card: React.FC<CardProps> = ({
   interpretedAbsVal = null,
   sizeClass = "w-11 h-15 sm:w-13 sm:h-18",
   isHighlighted = false,
+  isAddReaction = false,
+  isSwapReaction = false,
+  isBothReaction = false,
   isReadyToMeld = false,
   isTwoCardPair = false,
   isDimmed = false,
@@ -53,19 +59,48 @@ export const Card: React.FC<CardProps> = ({
     <div 
       onClick={onClick}
       className={`relative ${sizeClass} rounded-md sm:rounded-lg border-2 flex flex-col items-center justify-center select-none
-        transition-all duration-150 ease-out
+        transition-transform duration-150 ease-out
         ${isSelected 
-          ? '-translate-y-3 border-amber-500 bg-gradient-to-b from-[#fffbeb] via-white to-[#fef3c7] text-amber-900 shadow-[0_8px_16px_rgba(0,0,0,0.35)] z-20 cursor-pointer ring-2 ring-amber-400/90' 
+          ? '-translate-y-4 border-amber-800 bg-gradient-to-b from-[#faf7ee] via-white to-[#f5f0e0] text-amber-950 shadow-[0_12px_24px_rgba(0,0,0,0.5)] z-20 cursor-pointer' 
+          : (isBothReaction || isSwapReaction || isAddReaction)
+            ? 'border-amber-700/50 text-amber-900 bg-gradient-to-b from-[#faf7ee] via-white to-[#f5f0e0] shadow-[0_2px_4px_rgba(0,0,0,0.1)] cursor-pointer z-15'
           : isReadyToMeld
-            ? 'border-amber-300 text-amber-950 bg-gradient-to-b from-[#ffffff] via-[#fffbeb] to-[#fef08a] shadow-[0_2px_8px_rgba(251,191,36,0.4)] cursor-pointer ring-1.5 ring-amber-300 z-15'
+            ? 'border-amber-300 text-amber-950 bg-gradient-to-b from-[#ffffff] via-[#fffbeb] to-[#fef08a] shadow-xs cursor-pointer ring-1.5 ring-amber-300 z-15'
           : isTwoCardPair
             ? 'border-purple-400 text-purple-950 bg-gradient-to-b from-[#faf5ff] via-white to-[#f3e8ff] shadow-xs cursor-pointer ring-1 ring-purple-400/70 z-10'
-              : isDimmed
-                ? 'border-amber-900/30 text-amber-900/70 bg-gradient-to-b from-[#faf7ee] via-white to-[#f5f0e0] opacity-65 brightness-90 shadow-none cursor-pointer hover:opacity-90'
-                : 'border-amber-700/50 text-amber-900 bg-gradient-to-b from-[#faf7ee] via-white to-[#f5f0e0] shadow-[0_2px_4px_rgba(0,0,0,0.1)] cursor-pointer hover:border-amber-500'
+          : isDimmed
+            ? 'border-amber-900/30 text-amber-900/70 bg-gradient-to-b from-[#faf7ee] via-white to-[#f5f0e0] opacity-65 brightness-90 shadow-none cursor-pointer'
+            : 'border-amber-700/50 text-amber-900 bg-gradient-to-b from-[#faf7ee] via-white to-[#f5f0e0] shadow-[0_2px_4px_rgba(0,0,0,0.1)] cursor-pointer'
         }
         ${extraClass}`}
     >
+      {/* 🟢 🟧 シークエンス選択時の判別カラー丸バッジ（○） */}
+      {!isSelected && (
+        <>
+          {/* ✨ 付け札＆アレンジ両方可能：緑（付け札）とオレンジ（アレンジ）の丸が横並び！ */}
+          {isBothReaction && (
+            <div className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 z-30 pointer-events-none">
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white shadow-[0_0_4px_#10b981]" />
+              <div className="w-2.5 h-2.5 rounded-full bg-orange-500 border border-white shadow-[0_0_4px_#f97316]" />
+            </div>
+          )}
+
+          {/* 🌿 付け札のみ可能：緑の丸（○） */}
+          {isAddReaction && !isBothReaction && (
+            <div className="absolute -top-1.5 -right-1.5 z-30 pointer-events-none">
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white shadow-[0_0_4px_#10b981]" />
+            </div>
+          )}
+
+          {/* 🔄 アレンジのみ可能：オレンジの丸（○） */}
+          {isSwapReaction && !isBothReaction && (
+            <div className="absolute -top-1.5 -right-1.5 z-30 pointer-events-none">
+              <div className="w-2.5 h-2.5 rounded-full bg-orange-500 border border-white shadow-[0_0_4px_#f97316]" />
+            </div>
+          )}
+        </>
+      )}
+
       <div className="flex flex-col items-center pointer-events-none">
         <span className={`text-sm sm:text-base font-black flex items-baseline leading-none tracking-tight ${
           isReadyToMeld && !isSelected ? 'text-amber-950 font-black' : isTwoCardPair && !isSelected ? 'text-purple-900' : ''

@@ -2,10 +2,16 @@ import React from 'react';
 import { Card as CardType } from '../types/game';
 import { NOTE_NAMES, NOTE_JP } from '../constants/music';
 
+export interface ActionBadge {
+  text: string;
+  type: 'chord' | 'scale' | 'add' | 'swap';
+}
+
 interface IndicatorBarProps {
   selectedCount: number;
   selectedCards?: CardType[];
   formedMeldName?: string | null;
+  actionBadges?: ActionBadge[];
   isPlayerTurn?: boolean;
   isMainPhase?: boolean;
   isInterruptTurn?: boolean;
@@ -17,7 +23,8 @@ interface IndicatorBarProps {
 export const IndicatorBar: React.FC<IndicatorBarProps> = ({
   selectedCount,
   selectedCards = [],
-  formedMeldName
+  formedMeldName,
+  actionBadges = []
 }) => {
   return (
     <div className="bg-[#1b1008] border-2 border-[#452715] rounded-xl px-3 py-1.5 shadow-md flex items-center justify-between min-h-[34px] gap-2">
@@ -52,20 +59,39 @@ export const IndicatorBar: React.FC<IndicatorBarProps> = ({
         )}
       </div>
 
-      {/* 右側：成立役名表示（シンプル＆スマートなバッジ表示） */}
-      {formedMeldName && (
+      {/* 右側：成立役・アクションバッジ一覧（付け札・アレンジの同時表示対応） */}
+      {actionBadges.length > 0 ? (
+        <div className="shrink-0 flex items-center gap-1.5 overflow-x-auto">
+          {actionBadges.map((badge, idx) => (
+            <span
+              key={idx}
+              className={`px-2 py-0.5 rounded-md text-[10.5px] font-black tracking-wide shadow-xs whitespace-nowrap inline-flex items-center ${
+                badge.type === 'swap'
+                  ? 'bg-orange-950/90 border border-orange-400 text-orange-200 shadow-[0_0_8px_rgba(249,115,22,0.4)]'
+                  : badge.type === 'scale'
+                    ? 'bg-sky-950/90 border border-sky-400 text-sky-200 shadow-[0_0_8px_rgba(56,189,248,0.35)]'
+                    : badge.type === 'add'
+                      ? 'bg-emerald-950/90 border border-emerald-400 text-emerald-200 shadow-[0_0_8px_rgba(16,185,129,0.35)]'
+                      : 'bg-[#2a1a0f] border border-amber-400/80 text-amber-200 shadow-[0_0_6px_rgba(251,191,36,0.25)]'
+              }`}
+            >
+              {badge.text}
+            </span>
+          ))}
+        </div>
+      ) : formedMeldName ? (
         <div className="shrink-0">
-          <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-black tracking-wider shadow-inner animate-in fade-in zoom-in-95 duration-150 whitespace-nowrap inline-flex items-center ${
+          <span className={`px-2 py-0.5 rounded-md text-[10.5px] font-black tracking-wide shadow-xs whitespace-nowrap inline-flex items-center ${
             formedMeldName.startsWith('🔄')
-              ? 'bg-cyan-950 border border-cyan-400 text-cyan-200 shadow-[0_0_10px_rgba(6,182,212,0.5)]'
+              ? 'bg-orange-950/90 border border-orange-400 text-orange-200 shadow-[0_0_8px_rgba(249,115,22,0.4)]'
               : formedMeldName.startsWith('付け札')
-                ? 'bg-emerald-950 border border-emerald-400 text-emerald-200 shadow-[0_0_10px_rgba(16,185,129,0.4)]'
-                : 'bg-[#2a1a0f] border border-amber-400/80 text-amber-200 shadow-[0_0_8px_rgba(251,191,36,0.3)]'
+                ? 'bg-emerald-950/90 border border-emerald-400 text-emerald-200 shadow-[0_0_8px_rgba(16,185,129,0.35)]'
+                : 'bg-[#2a1a0f] border border-amber-400/80 text-amber-200'
           }`}>
             {formedMeldName}
           </span>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };
