@@ -83,7 +83,7 @@ export const Field: React.FC<FieldProps> = ({
                       <CardComponent 
                         card={ejectedCardInfo.card} 
                         isSelected={false} 
-                        sizeClass="w-8 h-11 sm:w-9 sm:h-12" 
+                        sizeClass="w-[32px] h-[46px] sm:w-[38px] sm:h-[54px]" 
                       />
                     </div>
                   </div>
@@ -128,7 +128,7 @@ export const Field: React.FC<FieldProps> = ({
                           card={c} 
                           isSelected={false} 
                           interpretedAbsVal={c.interpretedAbsVal} 
-                          sizeClass="w-8 h-11 sm:w-9 sm:h-12" 
+                          sizeClass="w-[32px] h-[46px] sm:w-[38px] sm:h-[54px]" 
                         />
                       </div>
                     );
@@ -190,7 +190,7 @@ export const Field: React.FC<FieldProps> = ({
                           card={c} 
                           isSelected={false} 
                           interpretedAbsVal={c.interpretedAbsVal} 
-                          sizeClass="w-8 h-11 sm:w-9 sm:h-12" 
+                          sizeClass="w-[32px] h-[46px] sm:w-[38px] sm:h-[54px]" 
                         />
                       </div>
                     );

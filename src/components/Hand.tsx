@@ -100,7 +100,7 @@ export const Hand: React.FC<HandProps> = ({
                 isTwoCardPair={isTwoCardPair}
                 isDimmed={isDimmed}
                 onClick={() => onCardClick(card)}
-                sizeClass="w-[38px] h-[54px] xs:w-10 xs:h-14 sm:w-12 sm:h-17"
+                sizeClass="w-[38px] h-[54px] sm:w-[46px] sm:h-[66px]"
               />
             </div>
           );

@@ -76,7 +76,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
             <button 
               disabled={!isPlayerTurn || !isMainPhase || !isValidScaleSelection} 
               onClick={() => onMeld('scale')} 
-              className="flex-1 py-1 bg-sky-600 hover:bg-sky-500 border border-sky-400 disabled:bg-[#170f08] disabled:border-[#331e11] disabled:text-amber-900/50 active:scale-95 text-white text-[10.5px] font-black rounded-lg shadow-xs transition"
+              className="flex-1 py-1.5 sm:py-1 bg-sky-600 hover:bg-sky-500 border border-sky-400 disabled:bg-[#170f08] disabled:border-[#331e11] disabled:text-amber-900/50 active:scale-95 text-white text-[10px] sm:text-[10.5px] font-black rounded-lg shadow-xs transition touch-manipulation"
               title="音階（3音以上）を場に出す"
             >
               スケール
@@ -84,7 +84,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
             <button 
               disabled={!isPlayerTurn || !isMainPhase || !isValidChordSelection} 
               onClick={() => onMeld('chord')} 
-              className="flex-1 py-1 bg-amber-600 hover:bg-amber-500 border border-amber-400 disabled:bg-[#170f08] disabled:border-[#331e11] disabled:text-amber-900/50 active:scale-95 text-white text-[10.5px] font-black rounded-lg shadow-xs transition"
+              className="flex-1 py-1.5 sm:py-1 bg-amber-600 hover:bg-amber-500 border border-amber-400 disabled:bg-[#170f08] disabled:border-[#331e11] disabled:text-amber-900/50 active:scale-95 text-white text-[10px] sm:text-[10.5px] font-black rounded-lg shadow-xs transition touch-manipulation"
               title="和音（3音）を場に出す"
             >
               コード
@@ -92,7 +92,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
             <button 
               disabled={!isPlayerTurn || !isMainPhase || !isValidAddSelection} 
               onClick={onAdd} 
-              className="flex-1 py-1 bg-emerald-600 hover:bg-emerald-500 border border-emerald-400 disabled:bg-[#170f08] disabled:border-[#331e11] disabled:text-amber-900/50 active:scale-95 text-white text-[10.5px] font-black rounded-lg shadow-xs transition"
+              className="flex-1 py-1.5 sm:py-1 bg-emerald-600 hover:bg-emerald-500 border border-emerald-400 disabled:bg-[#170f08] disabled:border-[#331e11] disabled:text-amber-900/50 active:scale-95 text-white text-[10px] sm:text-[10.5px] font-black rounded-lg shadow-xs transition touch-manipulation"
               title="選択した1枚を場のセットに付ける"
             >
               付け札
@@ -100,7 +100,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
             <button 
               disabled={!isPlayerTurn || !isMainPhase || !isValidSwapSelection} 
               onClick={onSwap} 
-              className="flex-1 py-1 bg-orange-600 hover:bg-orange-500 border border-orange-400 disabled:bg-[#170f08] disabled:border-[#331e11] disabled:text-amber-900/50 active:scale-95 text-white text-[10.5px] font-black rounded-lg shadow-xs transition"
+              className="flex-1 py-1.5 sm:py-1 bg-orange-600 hover:bg-orange-500 border border-orange-400 disabled:bg-[#170f08] disabled:border-[#331e11] disabled:text-amber-900/50 active:scale-95 text-white text-[10px] sm:text-[10.5px] font-black rounded-lg shadow-xs transition touch-manipulation"
               title="手札の1枚と場の1枚を入れ替えて手札に回収する"
             >
               入れ替え
@@ -108,7 +108,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
             <button 
               disabled={!isPlayerTurn || !isMainPhase || selectedCount !== 1 || !firstSelectedCardId} 
               onClick={() => firstSelectedCardId && onDiscard(firstSelectedCardId)} 
-              className="flex-1 py-1 bg-rose-700 hover:bg-rose-600 border border-rose-500 disabled:bg-[#170f08] disabled:border-[#331e11] disabled:text-amber-900/50 active:scale-95 text-white text-[10.5px] font-black rounded-lg shadow-xs transition"
+              className="flex-1 py-1.5 sm:py-1 bg-rose-700 hover:bg-rose-600 border border-rose-500 disabled:bg-[#170f08] disabled:border-[#331e11] disabled:text-amber-900/50 active:scale-95 text-white text-[10px] sm:text-[10.5px] font-black rounded-lg shadow-xs transition touch-manipulation"
               title="選択した1枚を手札から捨てる"
             >
               捨てる

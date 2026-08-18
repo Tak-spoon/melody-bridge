@@ -25,7 +25,7 @@ export const Card: React.FC<CardProps> = ({
   isSelected = false,
   onClick,
   interpretedAbsVal = null,
-  sizeClass = "w-11 h-15 sm:w-13 sm:h-18",
+  sizeClass = "w-[44px] h-[64px] sm:w-[54px] sm:h-[76px]",
   isHighlighted = false,
   isAddReaction = false,
   isSwapReaction = false,

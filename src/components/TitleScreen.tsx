@@ -48,62 +48,62 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
       </div>
 
       {/* 2. 🃏 3枚×2の躍動感あるクロスオーバー・カードショーケース */}
-      <div className="w-full max-w-xs my-2 flex items-center justify-center">
-        <div className="relative h-32 sm:h-36 w-72 sm:w-80 flex items-center justify-center">
+      <div className="w-full max-w-sm my-3 sm:my-5 flex items-center justify-center">
+        <div className="relative h-32 sm:h-40 w-72 sm:w-84 flex items-center justify-center">
           
           {/* 左側グループ: Cコード [C3, E3, G3] */}
-          <div className="absolute left-2 sm:left-4 flex items-center transition-transform hover:scale-105 duration-300">
+          <div className="absolute left-3 sm:left-6 flex items-center transition-transform hover:scale-105 duration-300">
             {/* C3 */}
             <div 
-              className="absolute -translate-x-8 -translate-y-1 transform -rotate-[18deg] shadow-2xl cursor-pointer transition hover:-translate-y-3"
+              className="absolute -translate-x-9 -translate-y-1.5 transform -rotate-[18deg] shadow-2xl cursor-pointer transition hover:-translate-y-3"
               onClick={() => playCardTone(7)}
               title="C3 (ド)"
             >
-              <Card card={SAMPLE_CHORD_CARDS[0]} sizeClass="w-13 h-18 sm:w-14 sm:h-20" />
+              <Card card={SAMPLE_CHORD_CARDS[0]} sizeClass="w-[52px] h-[74px] sm:w-[62px] sm:h-[88px]" />
             </div>
             {/* E3 */}
             <div 
-              className="absolute -translate-x-1 translate-y-0.5 transform -rotate-[6deg] shadow-2xl cursor-pointer transition hover:-translate-y-3 z-10"
+              className="absolute -translate-x-1.5 translate-y-0.5 transform -rotate-[6deg] shadow-2xl cursor-pointer transition hover:-translate-y-3 z-10"
               onClick={() => playCardTone(9)}
               title="E3 (ミ)"
             >
-              <Card card={SAMPLE_CHORD_CARDS[1]} sizeClass="w-13 h-18 sm:w-14 sm:h-20" />
+              <Card card={SAMPLE_CHORD_CARDS[1]} sizeClass="w-[52px] h-[74px] sm:w-[62px] sm:h-[88px]" />
             </div>
             {/* G3 */}
             <div 
-              className="relative translate-x-6 -translate-y-0.5 transform rotate-[6deg] shadow-2xl cursor-pointer transition hover:-translate-y-3 z-20"
+              className="relative translate-x-7 -translate-y-0.5 transform rotate-[6deg] shadow-2xl cursor-pointer transition hover:-translate-y-3 z-20"
               onClick={() => playCardTone(11)}
               title="G3 (ソ)"
             >
-              <Card card={SAMPLE_CHORD_CARDS[2]} sizeClass="w-13 h-18 sm:w-14 sm:h-20" />
+              <Card card={SAMPLE_CHORD_CARDS[2]} sizeClass="w-[52px] h-[74px] sm:w-[62px] sm:h-[88px]" />
             </div>
           </div>
 
           {/* 右側グループ: スケール [F3, G3, A3] */}
-          <div className="absolute right-2 sm:right-4 flex items-center transition-transform hover:scale-105 duration-300">
+          <div className="absolute right-3 sm:right-6 flex items-center transition-transform hover:scale-105 duration-300">
             {/* F3 */}
             <div 
-              className="relative -translate-x-6 -translate-y-0.5 transform -rotate-[6deg] shadow-2xl cursor-pointer transition hover:-translate-y-3"
+              className="relative -translate-x-7 -translate-y-0.5 transform -rotate-[6deg] shadow-2xl cursor-pointer transition hover:-translate-y-3"
               onClick={() => playCardTone(10)}
               title="F3 (ファ)"
             >
-              <Card card={SAMPLE_SCALE_CARDS[0]} sizeClass="w-13 h-18 sm:w-14 sm:h-20" />
+              <Card card={SAMPLE_SCALE_CARDS[0]} sizeClass="w-[52px] h-[74px] sm:w-[62px] sm:h-[88px]" />
             </div>
             {/* G3 */}
             <div 
-              className="absolute translate-x-1 translate-y-0.5 transform rotate-[6deg] shadow-2xl cursor-pointer transition hover:-translate-y-3 z-10"
+              className="absolute translate-x-1.5 translate-y-0.5 transform rotate-[6deg] shadow-2xl cursor-pointer transition hover:-translate-y-3 z-10"
               onClick={() => playCardTone(11)}
               title="G3 (ソ)"
             >
-              <Card card={SAMPLE_SCALE_CARDS[1]} sizeClass="w-13 h-18 sm:w-14 sm:h-20" />
+              <Card card={SAMPLE_SCALE_CARDS[1]} sizeClass="w-[52px] h-[74px] sm:w-[62px] sm:h-[88px]" />
             </div>
             {/* A3 */}
             <div 
-              className="absolute translate-x-8 -translate-y-1 transform rotate-[18deg] shadow-2xl cursor-pointer transition hover:-translate-y-3 z-20"
+              className="absolute translate-x-9 -translate-y-1.5 transform rotate-[18deg] shadow-2xl cursor-pointer transition hover:-translate-y-3 z-20"
               onClick={() => playCardTone(12)}
               title="A3 (ラ)"
             >
-              <Card card={SAMPLE_SCALE_CARDS[2]} sizeClass="w-13 h-18 sm:w-14 sm:h-20" />
+              <Card card={SAMPLE_SCALE_CARDS[2]} sizeClass="w-[52px] h-[74px] sm:w-[62px] sm:h-[88px]" />
             </div>
           </div>
 

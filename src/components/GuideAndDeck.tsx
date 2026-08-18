@@ -77,7 +77,7 @@ export const GuideAndDeck: React.FC<GuideAndDeckProps> = ({
             {/* 山札最上層カード */}
             <div 
               onClick={() => canDraw && onDraw()}
-              className={`relative w-10 h-14 sm:w-12 sm:h-17 rounded-md sm:rounded-lg border-2 border-slate-200 p-0.5 shadow-xl flex items-center justify-center select-none transition-all duration-150 z-10 ${
+              className={`relative w-[40px] h-[58px] sm:w-[48px] sm:h-[68px] rounded-md sm:rounded-lg border-2 border-slate-200 p-0.5 shadow-xl flex items-center justify-center select-none transition-all duration-150 z-10 ${
                 canDraw 
                   ? 'ring-3 ring-amber-400 border-amber-300 -translate-y-1 shadow-[0_0_18px_rgba(251,191,36,0.7)] active:scale-95 cursor-pointer animate-pulse' 
                   : 'opacity-95 cursor-default'
@@ -119,14 +119,14 @@ export const GuideAndDeck: React.FC<GuideAndDeckProps> = ({
                   <CardComponent
                     card={lastDiscardItem.card}
                     isSelected={false}
-                    sizeClass="w-10 h-14 sm:w-12 sm:h-17"
+                    sizeClass="w-[40px] h-[58px] sm:w-[48px] sm:h-[68px]"
                     isHidden={lastDiscardItem.isHidden}
                     extraClass={isMyInterrupt ? "ring-3 ring-amber-400 border-amber-300 shadow-[0_0_18px_rgba(251,191,36,0.85)] animate-pulse" : "shadow-lg"}
                   />
                 </div>
               </>
             ) : (
-              <div className="w-10 h-14 sm:w-12 sm:h-17 rounded-md sm:rounded-lg border-2 border-dashed border-amber-500/30 bg-[#0c0704] flex items-center justify-center">
+              <div className="w-[40px] h-[58px] sm:w-[48px] sm:h-[68px] rounded-md sm:rounded-lg border-2 border-dashed border-amber-500/30 bg-[#0c0704] flex items-center justify-center">
                 <span className="text-[9px] text-amber-500/40">-</span>
               </div>
             )}
