@@ -275,16 +275,16 @@ body {
   animation: gold-shimmer-sweep 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-/* 🎴 山札置き場（右上）から手札のツモ位置へスムーズに飛んでくるドローアニメーション（0.38秒） */
+/* 🎴 山札置き場（中段ActionBar右側）から手札のツモ位置へスムーズに飛んでくるドローアニメーション */
 @keyframes draw-fly-in {
   0% {
-    /* 画面上部・右側の山札（Deck）の真上から正確に出発 */
-    transform: translate(clamp(40px, 12vw, 90px), clamp(-520px, -65vh, -380px)) scale(0.85) rotate(4deg);
-    opacity: 0.9;
-    filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.55));
+    /* 中段ActionBar右側の山札から手札ツモ位置へ正確に出発 */
+    transform: translate(clamp(-30px, -4vw, 5px), clamp(-110px, -13vh, -75px)) scale(0.9) rotate(3deg);
+    opacity: 0.95;
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.45));
   }
   60% {
-    transform: translate(0, -4px) scale(1.02) rotate(-1deg);
+    transform: translate(0, -3px) scale(1.02) rotate(-1deg);
     opacity: 1;
   }
   100% {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Info } from 'lucide-react';
 import { Card as CardType, GameState, MeldType } from './types/game';
 import { NOTE_NAMES, NOTE_JP } from './constants/music';
 import { getChordSymbol, getChordInterpretation, getScaleInterpretation, tryAddCardToMeld, trySwapCardInMeld, analyzeHandConnections, SwapResult } from './utils/musicTheory';
@@ -125,6 +125,17 @@ export default function App() {
     } catch { return true; }
   });
 
+  // 自ターンの山札自動ドロー機能（localStorageで永続化・デフォルトOFF）
+  const [autoDrawEnabled, setAutoDrawEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('mb_auto_draw_enabled');
+      return saved !== null ? JSON.parse(saved) : false;
+    } catch { return false; }
+  });
+
+  // 手札ドラッグ＆ドロップ時の捨て札トレイハイライト状態
+  const [isDragOverDiscard, setIsDragOverDiscard] = useState<boolean>(false);
+
   const toggleSound = () => {
     setSoundEnabled(prev => {
       const next = !prev;
@@ -145,6 +156,14 @@ export default function App() {
     setAssistEnabled(prev => {
       const next = !prev;
       try { localStorage.setItem('mb_assist_enabled', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
+  const toggleAutoDraw = () => {
+    setAutoDrawEnabled(prev => {
+      const next = !prev;
+      try { localStorage.setItem('mb_auto_draw_enabled', JSON.stringify(next)); } catch {}
       return next;
     });
   };
@@ -1106,6 +1125,19 @@ export default function App() {
     };
   }, [gameState.turn, gameState.phase, gameState.players, gameState.field, gameState.actionCount, gameState.winner, gameState.roundOver, gameState.interruptInfo, botMode, botSpeed, doDraw, doMeld, doAdd, doSwap, doDiscard, doPassInterrupt, doInterruptAction]);
 
+  // 🌟 自ターンの山札自動ドロー（設定ON時）
+  useEffect(() => {
+    if (screenMode !== 'battle') return;
+    if (!autoDrawEnabled || botMode) return;
+    if (gameState.roundOver || gameState.winner !== null) return;
+    if (gameState.turn === 0 && gameState.phase === 'draw' && !isInterruptTurn) {
+      const timer = setTimeout(() => {
+        doDraw();
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [screenMode, autoDrawEnabled, botMode, gameState.turn, gameState.phase, gameState.roundOver, gameState.winner, isInterruptTurn, doDraw]);
+
   // ラウンド進行
   const nextRound = useCallback(() => {
     if (gameState.round < 4) {
@@ -1234,6 +1266,7 @@ export default function App() {
           onSelectStage={(stage) => setSelectedPuzzleStage(stage)}
           soundEnabled={soundEnabled}
           assistEnabled={assistEnabled}
+          autoDrawEnabled={autoDrawEnabled}
           onOpenOptions={() => setShowOptionModal(true)}
         />
       )}
@@ -1246,7 +1279,6 @@ export default function App() {
             round={gameState.round}
             onOpenRules={() => setShowRuleModal(true)}
             onOpenOptions={() => setShowOptionModal(true)}
-            onOpenLogs={() => setShowLogModal(true)}
             onBackToTitle={() => setScreenMode('title')}
           />
 
@@ -1259,21 +1291,7 @@ export default function App() {
 
           {/* メインゲーム画面 */}
           <main className="flex-1 p-2 flex flex-col gap-1.5 overflow-hidden w-full min-h-0">
-            {/* ガイドメッセージ ＆ 山札・捨て札 */}
-            <GuideAndDeck
-              guideMessage={getGuideMessage()}
-              lastActionText={lastActionText}
-              isPlayerTurn={isPlayerTurn}
-              isDrawPhase={isDrawPhase}
-              isMyInterrupt={isMyInterrupt}
-              roundOver={gameState.roundOver}
-              deckCount={gameState.deck.length}
-              lastDiscardItem={lastDiscardItem}
-              onDraw={doDraw}
-              onOpenDiscardModal={() => setShowDiscardModal(true)}
-            />
-
-            {/* 場（フィールド：和音・音階セット一覧） */}
+            {/* 場（フィールド：和音・音階セット専用テーブル・スクロールゼロ） */}
             <Field
               field={gameState.field}
               players={gameState.players}
@@ -1286,6 +1304,10 @@ export default function App() {
               isPlayerTurn={isPlayerTurn}
               isMainPhase={isMainPhase}
               onSelectMeld={(meldId) => {
+                if (meldId === null) {
+                  setSelectedMeld(null);
+                  return;
+                }
                 setSelectedMeld(prev => {
                   const next = prev === meldId ? null : meldId;
                   if (next !== null && selectedHand.length > 1) {
@@ -1297,27 +1319,15 @@ export default function App() {
             />
           </main>
 
-          {/* インジケーター表示専用コンテナ（横1行・情報ナビ専用） */}
+          {/* 🌟 アクション操作・インジケーター・山札・捨て札 統合コンテナ（横1行省スペース） */}
           <div className="px-2 pb-1 shrink-0">
-            <IndicatorBar
+            <ActionBar
               selectedCount={selectedHand.length}
               selectedCards={playerHandCards.filter(c => selectedHand.includes(c.id))}
               formedMeldName={formedMeldName}
               actionBadges={actionBadges}
               isPlayerTurn={isPlayerTurn}
-              isMainPhase={isMainPhase}
-              isInterruptTurn={isInterruptTurn}
-              isMyInterrupt={isMyInterrupt}
-              selectedMeldId={selectedMeld}
-              hasSwappedThisTurn={gameState.hasSwappedThisTurn}
-            />
-          </div>
-
-          {/* アクション操作専用コンテナ（横1行・ボタン専用） */}
-          <div className="px-2 pb-1 shrink-0">
-            <ActionBar
-              selectedCount={selectedHand.length}
-              isPlayerTurn={isPlayerTurn}
+              isDrawPhase={isDrawPhase}
               isMainPhase={isMainPhase}
               isInterruptTurn={isInterruptTurn}
               isMyInterrupt={isMyInterrupt}
@@ -1327,6 +1337,15 @@ export default function App() {
               isValidChordSelection={isValidChordSelection}
               isValidAddSelection={isValidAddSelection}
               isValidSwapSelection={isValidSwapSelection}
+              guideMessage={getGuideMessage()}
+              lastActionText={lastActionText}
+              deckCount={gameState.deck.length}
+              lastDiscardItem={lastDiscardItem}
+              roundOver={gameState.roundOver}
+              isDragOverDiscard={isDragOverDiscard}
+              onDraw={doDraw}
+              onOpenDiscardModal={() => setShowDiscardModal(true)}
+              onOpenLogs={() => setShowLogModal(true)}
               onMeld={handlePlayerMeld}
               onAdd={handlePlayerAdd}
               onSwap={handlePlayerSwap}
@@ -1351,7 +1370,11 @@ export default function App() {
               twoCardPairCardIds={twoCardPairCardIds}
               isInterruptTurn={isInterruptTurn}
               isMyInterrupt={isMyInterrupt}
+              isPlayerTurn={isPlayerTurn}
+              isMainPhase={isMainPhase}
               onCardClick={handleCardClick}
+              onDiscard={doDiscard}
+              onDragOverDiscardChange={setIsDragOverDiscard}
             />
           </div>
         </>
@@ -1376,6 +1399,7 @@ export default function App() {
         soundEnabled={soundEnabled}
         cardToneEnabled={cardToneEnabled}
         assistEnabled={assistEnabled}
+        autoDrawEnabled={autoDrawEnabled}
         botMode={botMode}
         botSpeed={botSpeed}
         botTargetCount={botTargetCount}
@@ -1383,6 +1407,7 @@ export default function App() {
         onToggleSound={toggleSound}
         onToggleCardTone={toggleCardTone}
         onToggleAssist={toggleAssist}
+        onToggleAutoDraw={toggleAutoDraw}
         onToggleBot={toggleBotMode}
         onChangeBotSpeed={cycleBotSpeed}
         onChangeBotTargetCount={changeBotTargetCount}

@@ -5,7 +5,7 @@ interface HeaderProps {
   round: number;
   onOpenRules: () => void;
   onOpenOptions: () => void;
-  onOpenLogs: () => void;
+  onOpenLogs?: () => void;
   onBackToTitle?: () => void;
 }
 
@@ -13,7 +13,6 @@ export const Header: React.FC<HeaderProps> = ({
   round,
   onOpenRules,
   onOpenOptions,
-  onOpenLogs,
   onBackToTitle,
 }) => {
   return (
@@ -60,15 +59,6 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Settings className="w-3.5 h-3.5 text-amber-400" />
           <span>設定</span>
-        </button>
-
-        <button 
-          onClick={onOpenLogs}
-          className="flex items-center gap-1 px-2 py-1 bg-[#180f09] hover:bg-[#2e1c11] text-amber-200 text-xs font-bold rounded-lg border border-amber-700/50 transition active:scale-95 shadow-xs"
-          title="対戦履歴を確認"
-        >
-          <History className="w-3.5 h-3.5 text-amber-400" />
-          <span>履歴</span>
         </button>
       </div>
     </header>

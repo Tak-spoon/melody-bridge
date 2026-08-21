@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, RotateCcw, Trophy, ArrowRight, Sparkles, X, Play, BookOpen, Lightbulb, HelpCircle, Lock, ArrowRight as ArrowRightIcon, Settings } from 'lucide-react';
+import { ArrowLeft, RotateCcw, Trophy, ArrowRight, Sparkles, X, Play, BookOpen, Lightbulb, HelpCircle, Lock, ArrowRight as ArrowRightIcon, Settings, Info } from 'lucide-react';
 import { Card as CardType, Meld, Player, DiscardItem } from '../../types/game';
 import { PuzzleStage } from '../../types/puzzle';
 import { PUZZLE_CHAPTERS } from '../../constants/puzzles';
@@ -24,6 +24,7 @@ interface PuzzlePlayProps {
   onSelectStage: (stage: PuzzleStage) => void;
   soundEnabled: boolean;
   assistEnabled: boolean;
+  autoDrawEnabled?: boolean;
   onOpenOptions?: () => void;
 }
 
@@ -432,6 +433,7 @@ export const PuzzlePlay: React.FC<PuzzlePlayProps> = ({
   onSelectStage,
   soundEnabled,
   assistEnabled,
+  autoDrawEnabled = false,
   onOpenOptions,
 }) => {
   // ステージ初期設定（通常ドローかポン・チー割り込み開始か）
@@ -466,12 +468,12 @@ export const PuzzlePlay: React.FC<PuzzlePlayProps> = ({
     return undefined;
   });
 
-  // 場のステート
   const [field, setField] = useState<Meld[]>(() => stage.initialField.map(m => ({ ...m, cards: [...m.cards] })));
   const [hasSwapped, setHasSwapped] = useState(false);
   const [selectedHand, setSelectedHand] = useState<string[]>([]);
   const [selectedMeld, setSelectedMeld] = useState<string | null>(null);
   const [lastAddedCardId, setLastAddedCardId] = useState<string | null>(null);
+  const [isDragOverDiscard, setIsDragOverDiscard] = useState<boolean>(false);
 
   // 演出・ポップアップステート（チュートリアルのみ開始時にお題モーダルを表示）
   const isTutorial = stage.id.startsWith('tut_');
@@ -585,6 +587,16 @@ export const PuzzlePlay: React.FC<PuzzlePlayProps> = ({
     setLastActionText(`山札から [${noteName}${oct}] を引きました`);
   };
 
+  // 🌟 自ターンの山札自動ドロー（パズル・設定ON時）
+  useEffect(() => {
+    if (phase === 'draw' && deckCard && autoDrawEnabled && !showIntroModal) {
+      const timer = setTimeout(() => {
+        handleDraw();
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [phase, deckCard, autoDrawEnabled, showIntroModal]);
+
   // アガリ判定（手札が0枚になった瞬間：WinEffect演出 ➔ クリアモーダル）
   useEffect(() => {
     if (phase === 'main' && hand.length === 0 && !isCleared) {
@@ -649,8 +661,13 @@ export const PuzzlePlay: React.FC<PuzzlePlayProps> = ({
   };
 
   // 場のセット選択ハンドラ
-  const handleSelectMeld = (meldId: string) => {
+  const handleSelectMeld = (meldId: string | null) => {
     if (phase !== 'main') return;
+
+    if (meldId === null) {
+      setSelectedMeld(null);
+      return;
+    }
 
     setSelectedMeld(prev => {
       const next = prev === meldId ? null : meldId;
@@ -1107,22 +1124,7 @@ export const PuzzlePlay: React.FC<PuzzlePlayProps> = ({
 
       {/* 3. メインゲーム画面（対戦モードと100%同一構造） */}
       <main className="flex-1 p-2 flex flex-col gap-1.5 overflow-hidden w-full min-h-0">
-        
-        {/* ガイドメッセージ ＆ 山札・捨て札 */}
-        <GuideAndDeck
-          guideMessage={guideMessage}
-          lastActionText={lastActionText}
-          isPlayerTurn={!isInterruptTurn}
-          isDrawPhase={phase === 'draw'}
-          isMyInterrupt={isInterruptTurn}
-          roundOver={isCleared}
-          deckCount={phase === 'draw' ? 1 : 0}
-          lastDiscardItem={lastDiscardItem}
-          onDraw={handleDraw}
-          onOpenDiscardModal={() => setShowDiscardModal(true)}
-        />
-
-        {/* ゲームフィールド（場） */}
+        {/* ゲームフィールド（場：和音・音階セット専用テーブル・スクロールゼロ） */}
         <Field
           field={field}
           players={dummyPlayers}
@@ -1138,27 +1140,15 @@ export const PuzzlePlay: React.FC<PuzzlePlayProps> = ({
         />
       </main>
 
-      {/* 4. インジケーター表示コンテナ（横1行） */}
+      {/* 4. 🌟 アクション操作・インジケーター・山札・捨て札 統合コンテナ（横1行省スペース） */}
       <div className="px-2 pb-1 shrink-0">
-        <IndicatorBar
+        <ActionBar
           selectedCount={selectedHand.length}
           selectedCards={hand.filter(c => selectedHand.includes(c.id))}
           formedMeldName={isValidChordSelection ? getChordSymbol(selectedObjs) : undefined}
           actionBadges={actionBadges}
           isPlayerTurn={!isInterruptTurn}
-          isMainPhase={phase === 'main'}
-          isInterruptTurn={isInterruptTurn}
-          isMyInterrupt={isInterruptTurn}
-          selectedMeldId={selectedMeld}
-          hasSwappedThisTurn={hasSwapped}
-        />
-      </div>
-
-      {/* 5. アクション操作コンテナ（横1行） */}
-      <div className="px-2 pb-1 shrink-0">
-        <ActionBar
-          selectedCount={selectedHand.length}
-          isPlayerTurn={!isInterruptTurn}
+          isDrawPhase={phase === 'draw'}
           isMainPhase={phase === 'main'}
           isInterruptTurn={isInterruptTurn}
           isMyInterrupt={isInterruptTurn}
@@ -1168,6 +1158,14 @@ export const PuzzlePlay: React.FC<PuzzlePlayProps> = ({
           isValidChordSelection={isValidChordSelection}
           isValidAddSelection={isValidAddSelection}
           isValidSwapSelection={isValidSwapSelection}
+          guideMessage={guideMessage}
+          lastActionText={lastActionText}
+          deckCount={phase === 'draw' ? 1 : 0}
+          lastDiscardItem={lastDiscardItem}
+          roundOver={isCleared}
+          isDragOverDiscard={isDragOverDiscard}
+          onDraw={handleDraw}
+          onOpenDiscardModal={() => setShowDiscardModal(true)}
           onMeld={(type) => handleMeld(type)}
           onAdd={handleAdd}
           onSwap={handleSwap}
@@ -1192,7 +1190,11 @@ export const PuzzlePlay: React.FC<PuzzlePlayProps> = ({
           twoCardPairCardIds={twoCardPairCardIds}
           isInterruptTurn={isInterruptTurn}
           isMyInterrupt={isInterruptTurn}
+          isPlayerTurn={!isInterruptTurn}
+          isMainPhase={phase === 'main'}
           onCardClick={handleCardClick}
+          onDiscard={handleDiscard}
+          onDragOverDiscardChange={setIsDragOverDiscard}
         />
       </div>
 

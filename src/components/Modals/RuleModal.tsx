@@ -465,7 +465,7 @@ const CONTROLS_DATA: RuleSection[] = [
     )
   },
   {
-    title: "2. 役出しの操作（コード・スケール）",
+    title: "2. 役出しと捨て札の操作",
     content: (
       <div className="space-y-2 text-xs text-amber-100/90 leading-relaxed select-none">
         <div className="bg-[#24150c] p-2.5 rounded-xl border border-amber-900/80 space-y-1.5 shadow-inner text-[10.5px]">
@@ -480,6 +480,19 @@ const CONTROLS_DATA: RuleSection[] = [
           <div className="flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <span>ボタンを押すと、場に公開されて美しい和音が鳴り響きます</span>
+          </div>
+        </div>
+
+        {/* 🌟 クイック捨て札ショートカット */}
+        <div className="bg-[#1f1008] p-2 rounded-xl border border-rose-600/60 shadow-inner flex items-start gap-2 text-[10px]">
+          <div className="w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-xs shrink-0 shadow-sm">
+            🗑️
+          </div>
+          <div>
+            <strong className="text-rose-300 font-bold block mb-0.5">💡 クイック捨て札（ショートカット）</strong>
+            <p className="text-rose-100/90 leading-tight">
+              捨てたいカードを<strong>少し長押し</strong>（または上へスライド）すると、カード直上に現れる<strong>「🗑️ ゴミ箱」に重ねて離すだけ</strong>で、ボタンを押さずに一瞬で捨てられます！
+            </p>
           </div>
         </div>
 
