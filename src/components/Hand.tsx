@@ -228,7 +228,8 @@ export const Hand: React.FC<HandProps> = ({
                 <div 
                   key={card.id} 
                   onPointerDown={(e) => handleCardPointerDown(e, card)}
-                  className={`shrink-0 mx-[1.5px] sm:mx-0.5 transition-all duration-100 touch-none ${
+                  onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  className={`shrink-0 mx-[1.5px] sm:mx-0.5 transition-all duration-100 touch-none select-none ${
                     isCurrentlyTargeted ? '-translate-y-2 scale-105 z-40' : ''
                   } ${
                     isSwappedIn 
@@ -264,7 +265,8 @@ export const Hand: React.FC<HandProps> = ({
           {justDrawnCard && (
             <div 
               onPointerDown={(e) => handleCardPointerDown(e, justDrawnCard)}
-              className={`ml-auto pl-2 sm:pl-3 border-l border-amber-600/30 shrink-0 animate-draw-fly-in z-25 transition-all duration-100 touch-none ${
+              onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              className={`ml-auto pl-2 sm:pl-3 border-l border-amber-600/30 shrink-0 animate-draw-fly-in z-25 transition-all duration-100 touch-none select-none ${
                 trashTarget?.card.id === justDrawnCard.id ? '-translate-y-2 scale-105 z-40' : ''
               }`}
             >
